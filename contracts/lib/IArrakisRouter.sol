@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.15;
 
-import { IArrakisPool } from "./IArrakisPool.sol";
+import {IArrakisPool} from "./IArrakisPool.sol";
 
 interface IArrakisRouter {
     function factory() external view returns (address);
@@ -14,13 +14,7 @@ interface IArrakisRouter {
         uint256 amount0Min,
         uint256 amount1Min,
         address receiver
-    )
-        external
-        returns (
-            uint256 amount0,
-            uint256 amount1,
-            uint256 mintAmount
-        );
+    ) external returns (uint256 amount0, uint256 amount1, uint256 mintAmount);
 
     function addLiquidityETH(
         IArrakisPool pool,
@@ -29,14 +23,7 @@ interface IArrakisRouter {
         uint256 amount0Min,
         uint256 amount1Min,
         address receiver
-    )
-        external
-        payable
-        returns (
-            uint256 amount0,
-            uint256 amount1,
-            uint256 mintAmount
-        );
+    ) external payable returns (uint256 amount0, uint256 amount1, uint256 mintAmount);
 
     function rebalanceAndAddLiquidity(
         IArrakisPool pool,
@@ -48,13 +35,7 @@ interface IArrakisRouter {
         uint256 amount0Min,
         uint256 amount1Min,
         address receiver
-    )
-        external
-        returns (
-            uint256 amount0,
-            uint256 amount1,
-            uint256 mintAmount
-        );
+    ) external returns (uint256 amount0, uint256 amount1, uint256 mintAmount);
 
     function rebalanceAndAddLiquidityETH(
         IArrakisPool pool,
@@ -66,14 +47,7 @@ interface IArrakisRouter {
         uint256 amount0Min,
         uint256 amount1Min,
         address receiver
-    )
-        external
-        payable
-        returns (
-            uint256 amount0,
-            uint256 amount1,
-            uint256 mintAmount
-        );
+    ) external payable returns (uint256 amount0, uint256 amount1, uint256 mintAmount);
 
     function removeLiquidity(
         IArrakisPool pool,
@@ -81,13 +55,7 @@ interface IArrakisRouter {
         uint256 amount0Min,
         uint256 amount1Min,
         address receiver
-    )
-        external
-        returns (
-            uint256 amount0,
-            uint256 amount1,
-            uint128 liquidityBurned
-        );
+    ) external returns (uint256 amount0, uint256 amount1, uint128 liquidityBurned);
 
     function removeLiquidityETH(
         IArrakisPool pool,
@@ -95,11 +63,5 @@ interface IArrakisRouter {
         uint256 amount0Min,
         uint256 amount1Min,
         address payable receiver
-    )
-        external
-        returns (
-            uint256 amount0,
-            uint256 amount1,
-            uint128 liquidityBurned
-        );
+    ) external returns (uint256 amount0, uint256 amount1, uint128 liquidityBurned);
 }

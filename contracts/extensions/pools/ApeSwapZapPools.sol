@@ -12,32 +12,21 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
     IERC20 public immutable GNANA;
     ITreasury public immutable GNANA_TREASURY; // Golden Banana Treasury
 
-    event ZapLPPool(
-        IERC20 inputToken,
-        uint256 inputAmount,
-        IBEP20RewardApeV5 pool
-    );
+    event ZapLPPool(IERC20 inputToken, uint256 inputAmount, IBEP20RewardApeV5 pool);
     event ZapLPPoolNative(uint256 inputAmount, IBEP20RewardApeV5 pool);
-    event ZapSingleAssetPool(
-        IERC20 inputToken,
-        uint256 inputAmount,
-        IBEP20RewardApeV5 pool
-    );
-    event ZapSingleAssetPoolNative(
-        uint256 inputAmount,
-        IBEP20RewardApeV5 pool
-    );
+    event ZapSingleAssetPool(IERC20 inputToken, uint256 inputAmount, IBEP20RewardApeV5 pool);
+    event ZapSingleAssetPoolNative(uint256 inputAmount, IBEP20RewardApeV5 pool);
 
     constructor(ITreasury goldenBananaTreasury) {
         ITreasury gnanaTreasury;
         IERC20 banana;
-        IERC20 gnana; 
-        if(block.chainid == 56) {
+        IERC20 gnana;
+        if (block.chainid == 56) {
             /// @dev The Golden Banana Treasury only exists on BNB Chain
-            require(address(goldenBananaTreasury) != address(0), 'Must provide Golden BANANA Treasury for BNB Chain');
-        } 
-        
-        if(address(goldenBananaTreasury) != address(0)) {
+            require(address(goldenBananaTreasury) != address(0), "Must provide Golden BANANA Treasury for BNB Chain");
+        }
+
+        if (address(goldenBananaTreasury) != address(0)) {
             gnanaTreasury = goldenBananaTreasury;
             banana = gnanaTreasury.banana();
             gnana = gnanaTreasury.goldenBanana();
@@ -72,14 +61,7 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
         inputToken.safeTransferFrom(msg.sender, address(this), inputAmount);
         inputAmount = _getBalance(inputToken) - balanceBefore;
 
-        __zapInternalSingleAssetPool(
-            inputToken,
-            inputAmount,
-            path,
-            minAmountsSwap,
-            deadline,
-            pool
-        );
+        __zapInternalSingleAssetPool(inputToken, inputAmount, path, minAmountsSwap, deadline, pool);
         emit ZapSingleAssetPool(inputToken, inputAmount, pool);
     }
 
@@ -96,16 +78,9 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
     ) external payable nonReentrant {
         uint256 inputAmount = msg.value;
         IERC20 inputToken = IERC20(WNATIVE);
-        IWETH(WNATIVE).deposit{ value: inputAmount }();
+        IWETH(WNATIVE).deposit{value: inputAmount}();
 
-        __zapInternalSingleAssetPool(
-            inputToken,
-            inputAmount,
-            path,
-            minAmountsSwap,
-            deadline,
-            pool
-        );
+        __zapInternalSingleAssetPool(inputToken, inputAmount, path, minAmountsSwap, deadline, pool);
         emit ZapSingleAssetPoolNative(inputAmount, pool);
     }
 
@@ -132,10 +107,8 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
     ) external nonReentrant {
         IApePair pair = IApePair(address(pool.STAKE_TOKEN()));
         require(
-            (underlyingTokens[0] == pair.token0() &&
-                underlyingTokens[1] == pair.token1()) ||
-                (underlyingTokens[1] == pair.token0() &&
-                    underlyingTokens[0] == pair.token1()),
+            (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
+                (underlyingTokens[1] == pair.token0() && underlyingTokens[0] == pair.token1()),
             "ApeSwapZap: Wrong LP pair for Pool"
         );
 
@@ -177,22 +150,12 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
     ) external payable nonReentrant {
         IApePair pair = IApePair(address(pool.STAKE_TOKEN()));
         require(
-            (underlyingTokens[0] == pair.token0() &&
-                underlyingTokens[1] == pair.token1()) ||
-                (underlyingTokens[1] == pair.token0() &&
-                    underlyingTokens[0] == pair.token1()),
+            (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
+                (underlyingTokens[1] == pair.token0() && underlyingTokens[0] == pair.token1()),
             "ApeSwapZap: Wrong LP pair for Pool"
         );
 
-        _zapNativeInternal(
-            underlyingTokens,
-            path0,
-            path1,
-            minAmountsSwap,
-            minAmountsLP,
-            address(this),
-            deadline
-        );
+        _zapNativeInternal(underlyingTokens, path0, path1, minAmountsSwap, minAmountsLP, address(this), deadline);
 
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(pool), balance);
@@ -201,7 +164,7 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
         emit ZapLPPoolNative(msg.value, pool);
     }
 
-        /// @notice Zap token into banana/gnana pool
+    /// @notice Zap token into banana/gnana pool
     /// @param inputToken Input token to zap
     /// @param inputAmount Amount of input tokens to zap
     /// @param path Path from input token to stake token
@@ -222,14 +185,8 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
         IERC20 neededToken = stakeToken == GNANA ? BANANA : stakeToken;
 
         if (inputToken != neededToken) {
-            require(
-                path[0] == address(inputToken),
-                "ApeSwapZap: wrong path path[0]"
-            );
-            require(
-                path[path.length - 1] == address(neededToken),
-                "ApeSwapZap: wrong path path[-1]"
-            );
+            require(path[0] == address(inputToken), "ApeSwapZap: wrong path path[0]");
+            require(path[path.length - 1] == address(neededToken), "ApeSwapZap: wrong path path[-1]");
 
             inputToken.approve(address(router), inputAmount);
             uint256[] memory amounts = router.swapExactTokensForTokens(

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IBEP20RewardApeV5 {
     function REWARD_TOKEN() external view returns (IERC20);
@@ -15,12 +15,7 @@ interface IBEP20RewardApeV5 {
     function poolInfo()
         external
         view
-        returns (
-            address lpToken,
-            uint256 allocPoint,
-            uint256 lastRewardBlock,
-            uint256 accRewardTokenPerShare
-        );
+        returns (address lpToken, uint256 allocPoint, uint256 lastRewardBlock, uint256 accRewardTokenPerShare);
 
     function renounceOwnership() external;
 
@@ -36,10 +31,7 @@ interface IBEP20RewardApeV5 {
 
     function transferOwnership(address newOwner) external;
 
-    function userInfo(address)
-        external
-        view
-        returns (uint256 amount, uint256 rewardDebt);
+    function userInfo(address) external view returns (uint256 amount, uint256 rewardDebt);
 
     function initialize(
         address _stakeToken,
@@ -49,10 +41,7 @@ interface IBEP20RewardApeV5 {
         uint256 _bonusEndBlock
     ) external;
 
-    function getMultiplier(uint256 _from, uint256 _to)
-        external
-        view
-        returns (uint256);
+    function getMultiplier(uint256 _from, uint256 _to) external view returns (uint256);
 
     function setBonusEndBlock(uint256 _bonusEndBlock) external;
 

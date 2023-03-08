@@ -53,11 +53,5 @@ interface IApeSwapZap {
         uint256 _inputAmount,
         address[] calldata _path0,
         address[] calldata _path1
-    )
-        external
-        view
-        returns (
-            uint256[2] memory _minAmountsSwap,
-            uint256[2] memory _minAmountsLP
-        );
+    ) external view returns (uint256[2] memory _minAmountsSwap, uint256[2] memory _minAmountsLP);
 }

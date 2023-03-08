@@ -20,16 +20,11 @@ abstract contract ApeSwapZapTBillsV2 is ApeSwapZapV2 {
     /// deadline Unix timestamp after which the transaction will revert
     /// bill Treasury bill address
     /// maxPrice Max price of treasury bill
-    function zapTBill(ZapParamsTBill memory zapParamsTBill)
-        external
-        nonReentrant
-    {
+    function zapTBill(ZapParamsTBill memory zapParamsTBill) external nonReentrant {
         IApePair pair = IApePair(zapParamsTBill.bill.principalToken());
         require(
-            (zapParamsTBill.zapParams.token0 == pair.token0() &&
-                zapParamsTBill.zapParams.token1 == pair.token1()) ||
-                (zapParamsTBill.zapParams.token1 == pair.token0() &&
-                    zapParamsTBill.zapParams.token0 == pair.token1()),
+            (zapParamsTBill.zapParams.token0 == pair.token0() && zapParamsTBill.zapParams.token1 == pair.token1()) ||
+                (zapParamsTBill.zapParams.token1 == pair.token0() && zapParamsTBill.zapParams.token0 == pair.token1()),
             "ApeSwapZap: Wrong LP pair for TBill"
         );
         address to = zapParamsTBill.zapParams.to;
@@ -51,18 +46,13 @@ abstract contract ApeSwapZapTBillsV2 is ApeSwapZapV2 {
     /// deadline Unix timestamp after which the transaction will revert
     /// bill Treasury bill address
     /// maxPrice Max price of treasury bill
-    function zapTBillNative(ZapParamsTBillNative memory zapParamsTBillNative)
-        external
-        payable
-        nonReentrant
-    {
+    function zapTBillNative(ZapParamsTBillNative memory zapParamsTBillNative) external payable nonReentrant {
         IApePair pair = IApePair(zapParamsTBillNative.bill.principalToken());
         require(
             (zapParamsTBillNative.zapParamsNative.token0 == pair.token0() &&
                 zapParamsTBillNative.zapParamsNative.token1 == pair.token1()) ||
                 (zapParamsTBillNative.zapParamsNative.token1 == pair.token0() &&
-                    zapParamsTBillNative.zapParamsNative.token0 ==
-                    pair.token1()),
+                    zapParamsTBillNative.zapParamsNative.token0 == pair.token1()),
             "ApeSwapZap: Wrong LP pair for TBill"
         );
         address to = zapParamsTBillNative.zapParamsNative.to;
@@ -71,11 +61,7 @@ abstract contract ApeSwapZapTBillsV2 is ApeSwapZapV2 {
 
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(zapParamsTBillNative.bill), balance);
-        zapParamsTBillNative.bill.deposit(
-            balance,
-            zapParamsTBillNative.maxPrice,
-            to
-        );
+        zapParamsTBillNative.bill.deposit(balance, zapParamsTBillNative.maxPrice, to);
         pair.approve(address(zapParamsTBillNative.bill), 0);
         emit ZapTBillNative(zapParamsTBillNative);
     }

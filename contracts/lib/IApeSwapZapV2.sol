@@ -105,11 +105,7 @@ interface IApeSwapZapV2 {
 
     function zapNative(ZapParamsNative memory zapParamsNative) external payable;
 
-    function getMinAmounts(MinAmountsParams memory params)
-        external
-        view
-        returns (
-            uint256[2] memory minAmountsSwap,
-            uint256[2] memory minAmountsLP
-        );
+    function getMinAmounts(
+        MinAmountsParams memory params
+    ) external view returns (uint256[2] memory minAmountsSwap, uint256[2] memory minAmountsLP);
 }

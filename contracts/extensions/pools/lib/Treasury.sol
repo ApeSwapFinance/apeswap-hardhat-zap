@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
- pragma solidity 0.8.15;
+pragma solidity 0.8.15;
 
 /*
  * ApeSwapFinance
@@ -28,8 +28,7 @@ contract Treasury is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address constant burnAddress =
-        address(0x000000000000000000000000000000000000dEaD);
+    address constant burnAddress = address(0x000000000000000000000000000000000000dEaD);
 
     // The TOKEN to buy
     IERC20 public banana;
@@ -46,10 +45,7 @@ contract Treasury is Ownable {
 
     event Buy(address indexed user, uint256 amount);
     event Sell(address indexed user, uint256 amount);
-    event AdminTransferred(
-        address indexed previousAdmin,
-        address indexed newAdmin
-    );
+    event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
     event EmergencyWithdraw(address indexed receiver, uint256 amount);
     event UpdateBuyFee(uint256 previousBuyFee, uint256 newBuyFee);
 
@@ -87,11 +83,7 @@ contract Treasury is Ownable {
     /// @param _amount Amount of Golden Banana to sell
     function sell(uint256 _amount) external lock {
         uint256 preGoldenBananaReserves = goldenBananaReserves();
-        goldenBanana.safeTransferFrom(
-            address(msg.sender),
-            address(this),
-            _amount
-        );
+        goldenBanana.safeTransferFrom(address(msg.sender), address(this), _amount);
         // Because the Golden Banana is a reflect token, we need to find how much
         //  was transferred AFTER the reflect fee.
         uint256 amountIn = goldenBananaReserves().sub(preGoldenBananaReserves);

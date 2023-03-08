@@ -32,15 +32,7 @@ interface IMaximizerVaultApe {
     function userInfo(
         uint256 _pid,
         address _user
-    )
-        external
-        view
-        returns (
-            uint256 stake,
-            uint256 autoBananaShares,
-            uint256 rewardDebt,
-            uint256 lastDepositedTime
-        );
+    ) external view returns (uint256 stake, uint256 autoBananaShares, uint256 rewardDebt, uint256 lastDepositedTime);
 
     function vaults(uint256 _pid) external view returns (address);
 
@@ -48,10 +40,7 @@ interface IMaximizerVaultApe {
 
     function addVault(address _strat) external;
 
-    function stakedWantTokens(
-        uint256 _pid,
-        address _user
-    ) external view returns (uint256);
+    function stakedWantTokens(uint256 _pid, address _user) external view returns (uint256);
 
     function depositTo(uint256 _pid, address _to, uint256 _wantAmt) external;
 

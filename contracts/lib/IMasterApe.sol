@@ -12,15 +12,9 @@ interface IMasterApe {
 
     function owner() external view returns (address);
 
-    function poolInfo(uint256)
-        external
-        view
-        returns (
-            address lpToken,
-            uint256 allocPoint,
-            uint256 lastRewardBlock,
-            uint256 accCakePerShare
-        );
+    function poolInfo(
+        uint256
+    ) external view returns (address lpToken, uint256 allocPoint, uint256 lastRewardBlock, uint256 accCakePerShare);
 
     function renounceOwnership() external;
 
@@ -32,10 +26,7 @@ interface IMasterApe {
 
     function transferOwnership(address newOwner) external;
 
-    function userInfo(uint256, address)
-        external
-        view
-        returns (uint256 amount, uint256 rewardDebt);
+    function userInfo(uint256, address) external view returns (uint256 amount, uint256 rewardDebt);
 
     function updateMultiplier(uint256 multiplierNumber) external;
 
@@ -43,27 +34,13 @@ interface IMasterApe {
 
     function checkPoolDuplicate(address _lpToken) external view;
 
-    function add(
-        uint256 _allocPoint,
-        address _lpToken,
-        bool _withUpdate
-    ) external;
+    function add(uint256 _allocPoint, address _lpToken, bool _withUpdate) external;
 
-    function set(
-        uint256 _pid,
-        uint256 _allocPoint,
-        bool _withUpdate
-    ) external;
+    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external;
 
-    function getMultiplier(uint256 _from, uint256 _to)
-        external
-        view
-        returns (uint256);
+    function getMultiplier(uint256 _from, uint256 _to) external view returns (uint256);
 
-    function pendingCake(uint256 _pid, address _user)
-        external
-        view
-        returns (uint256);
+    function pendingCake(uint256 _pid, address _user) external view returns (uint256);
 
     function massUpdatePools() external;
 
@@ -79,15 +56,9 @@ interface IMasterApe {
 
     function emergencyWithdraw(uint256 _pid) external;
 
-    function getPoolInfo(uint256 _pid)
-        external
-        view
-        returns (
-            address lpToken,
-            uint256 allocPoint,
-            uint256 lastRewardBlock,
-            uint256 accCakePerShare
-        );
+    function getPoolInfo(
+        uint256 _pid
+    ) external view returns (address lpToken, uint256 allocPoint, uint256 lastRewardBlock, uint256 accCakePerShare);
 
     function dev(address _devaddr) external;
 

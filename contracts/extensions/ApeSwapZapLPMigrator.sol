@@ -11,12 +11,7 @@ abstract contract ApeSwapZapLPMigrator is ReentrancyGuard {
 
     IApeRouter02 public immutable apeRouter;
 
-    event LPMigrated(
-        IApePair lp,
-        IApeRouter02 fromRouter,
-        IApeRouter02 toRouter,
-        uint256 amount
-    );
+    event LPMigrated(IApePair lp, IApeRouter02 fromRouter, IApeRouter02 toRouter, uint256 amount);
 
     constructor(IApeRouter02 router) {
         apeRouter = router;
@@ -46,16 +41,15 @@ abstract contract ApeSwapZapLPMigrator is ReentrancyGuard {
 
         IERC20(address(lp)).safeTransferFrom(msg.sender, address(this), amount);
         lp.approve(address(router), amount);
-        (uint256 amountAReceived, uint256 amountBReceived) = router
-            .removeLiquidity(
-                token0,
-                token1,
-                amount,
-                amountAMinRemove,
-                amountBMinRemove,
-                address(this),
-                deadline
-            );
+        (uint256 amountAReceived, uint256 amountBReceived) = router.removeLiquidity(
+            token0,
+            token1,
+            amount,
+            amountAMinRemove,
+            amountBMinRemove,
+            address(this),
+            deadline
+        );
 
         IERC20(token0).approve(address(apeRouter), amountAReceived);
         IERC20(token1).approve(address(apeRouter), amountBReceived);
@@ -71,16 +65,10 @@ abstract contract ApeSwapZapLPMigrator is ReentrancyGuard {
         );
 
         if (amountAReceived - amountASent > 0) {
-            IERC20(token0).safeTransfer(
-                msg.sender,
-                amountAReceived - amountASent
-            );
+            IERC20(token0).safeTransfer(msg.sender, amountAReceived - amountASent);
         }
         if (amountBReceived - amountBSent > 0) {
-            IERC20(token1).safeTransfer(
-                msg.sender,
-                amountBReceived - amountBSent
-            );
+            IERC20(token1).safeTransfer(msg.sender, amountBReceived - amountBSent);
         }
 
         emit LPMigrated(lp, router, apeRouter, amount);

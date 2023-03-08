@@ -12,17 +12,11 @@ interface IArrakisFactoryV1 {
         int24 upperTick
     ) external returns (address pool);
 
-    function getTokenName(
-        address token0,
-        address token1
-    ) external view returns (string memory);
+    function getTokenName(address token0, address token1) external view returns (string memory);
 
     function upgradePools(address[] memory pools) external;
 
-    function upgradePoolsAndCall(
-        address[] memory pools,
-        bytes[] calldata datas
-    ) external;
+    function upgradePoolsAndCall(address[] memory pools, bytes[] calldata datas) external;
 
     function makePoolsImmutable(address[] memory pools) external;
 
@@ -32,9 +26,7 @@ interface IArrakisFactoryV1 {
 
     function getDeployers() external view returns (address[] memory);
 
-    function getPools(
-        address deployer
-    ) external view returns (address[] memory);
+    function getPools(address deployer) external view returns (address[] memory);
 
     function numPools() external view returns (uint256 result);
 

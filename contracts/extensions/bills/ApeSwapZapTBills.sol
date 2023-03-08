@@ -33,10 +33,8 @@ abstract contract ApeSwapZapTBills is ApeSwapZap {
     ) external nonReentrant {
         IApePair pair = IApePair(bill.principalToken());
         require(
-            (underlyingTokens[0] == pair.token0() &&
-                underlyingTokens[1] == pair.token1()) ||
-                (underlyingTokens[1] == pair.token0() &&
-                    underlyingTokens[0] == pair.token1()),
+            (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
+                (underlyingTokens[1] == pair.token0() && underlyingTokens[0] == pair.token1()),
             "ApeSwapZap: Wrong LP pair for TBill"
         );
 
@@ -80,22 +78,12 @@ abstract contract ApeSwapZapTBills is ApeSwapZap {
     ) external payable nonReentrant {
         IApePair pair = IApePair(bill.principalToken());
         require(
-            (underlyingTokens[0] == pair.token0() &&
-                underlyingTokens[1] == pair.token1()) ||
-                (underlyingTokens[1] == pair.token0() &&
-                    underlyingTokens[0] == pair.token1()),
+            (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
+                (underlyingTokens[1] == pair.token0() && underlyingTokens[0] == pair.token1()),
             "ApeSwapZap: Wrong LP pair for TBill"
         );
 
-        _zapNativeInternal(
-            underlyingTokens,
-            path0,
-            path1,
-            minAmountsSwap,
-            minAmountsLP,
-            address(this),
-            deadline
-        );
+        _zapNativeInternal(underlyingTokens, path0, path1, minAmountsSwap, minAmountsLP, address(this), deadline);
 
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(bill), balance);

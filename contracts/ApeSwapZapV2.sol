@@ -86,10 +86,7 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
     /// @dev The receive method is used as a fallback function in a contract
     /// and is called when ether is sent to a contract with no calldata.
     receive() external payable {
-        require(
-            msg.sender == WNATIVE,
-            "ApeSwapZap: Only receive ether from wrapped"
-        );
+        require(msg.sender == WNATIVE, "ApeSwapZap: Only receive ether from wrapped");
     }
 
     /// @notice Zap single token to LP
@@ -100,30 +97,16 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
 
     /// @notice Zap native token to LP
     /// @param zapParams all parameters for native zap
-    function zapNative(ZapParamsNative memory zapParams)
-        external
-        payable
-        override
-        nonReentrant
-    {
+    function zapNative(ZapParamsNative memory zapParams) external payable override nonReentrant {
         _zapNativeInternal(zapParams);
     }
 
     /// @notice get min amounts for swaps
     /// @param params all params
-    function getMinAmounts(MinAmountsParams memory params)
-        external
-        view
-        override
-        returns (
-            uint256[2] memory minAmountsSwap,
-            uint256[2] memory minAmountsLP
-        )
-    {
-        require(
-            params.path0.path.length >= 2 || params.path1.path.length >= 2,
-            "ApeSwapZap: Needs at least one path"
-        );
+    function getMinAmounts(
+        MinAmountsParams memory params
+    ) external view override returns (uint256[2] memory minAmountsSwap, uint256[2] memory minAmountsLP) {
+        require(params.path0.path.length >= 2 || params.path1.path.length >= 2, "ApeSwapZap: Needs at least one path");
 
         minAmountsLocalVars memory vars;
 
@@ -134,9 +117,7 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
         vars.token1 = params.path1.path.length == 0
             ? params.path0.path[0]
             : params.path1.path[params.path1.path.length - 1];
-        vars.inputToken = params.path0.path.length > 0
-            ? params.path0.path[0]
-            : params.path1.path[0];
+        vars.inputToken = params.path0.path.length > 0 ? params.path0.path[0] : params.path1.path[0];
 
         //get min amounts for swap
         // V2 swap and based on V2 also V3 estimate assuming no arbitrage exists
@@ -145,18 +126,12 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
         vars.inputAmountHalf = params.inputAmount / 2;
         vars.minAmountSwap0 = vars.inputAmountHalf;
         if (params.path0.path.length != 0) {
-            uint256[] memory amountsOut0 = router.getAmountsOut(
-                vars.inputAmountHalf,
-                params.path0.path
-            );
+            uint256[] memory amountsOut0 = router.getAmountsOut(vars.inputAmountHalf, params.path0.path);
             vars.minAmountSwap0 = amountsOut0[amountsOut0.length - 1];
         }
         vars.minAmountSwap1 = vars.inputAmountHalf;
         if (params.path1.path.length != 0) {
-            uint256[] memory amountsOut1 = router.getAmountsOut(
-                vars.inputAmountHalf,
-                params.path1.path
-            );
+            uint256[] memory amountsOut1 = router.getAmountsOut(vars.inputAmountHalf, params.path1.path);
             vars.minAmountSwap1 = amountsOut1[amountsOut1.length - 1];
         }
         minAmountsSwap = [vars.minAmountSwap0, vars.minAmountSwap1];
@@ -180,36 +155,30 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
             revert("UniswapV3 LP is not yet supported");
         } else if (params.liquidityPath.lpType == LPType.Arrakis) {
             // arrakis lp
-            vars.uniV3Pool = IUniswapV3Factory(
-                IArrakisRouter(params.liquidityPath.lpRouter).factory()
-            ).getPool(
-                    vars.token0,
-                    vars.token1,
-                    params.liquidityPath.uniV3PoolLPFee
-                );
+            vars.uniV3Pool = IUniswapV3Factory(IArrakisRouter(params.liquidityPath.lpRouter).factory()).getPool(
+                vars.token0,
+                vars.token1,
+                params.liquidityPath.uniV3PoolLPFee
+            );
             vars.arrakisPool = ArrakisMath.getArrakisPool(
                 vars.uniV3Pool,
                 IArrakisFactoryV1(params.liquidityPath.arrakisFactory)
             );
-            ArrakisMath.SwapRatioParams memory swapRatioParams = ArrakisMath
-                .SwapRatioParams({
-                    inputToken: vars.inputToken,
-                    inputAmount: params.inputAmount,
-                    token0: vars.token0,
-                    token1: vars.token1,
-                    path0: params.path0.path,
-                    path1: params.path1.path,
-                    uniV3PoolFees0: params.path0.uniV3PoolFees,
-                    uniV3PoolFees1: params.path1.uniV3PoolFees,
-                    arrakisPool: vars.arrakisPool,
-                    uniV2Router0: params.path0.swapRouter,
-                    uniV2Router1: params.path1.swapRouter,
-                    uniV3Factory: IArrakisRouter(params.liquidityPath.lpRouter)
-                        .factory()
-                });
-            (vars.amount0, vars.amount1) = ArrakisMath.getSwapRatio(
-                swapRatioParams
-            );
+            ArrakisMath.SwapRatioParams memory swapRatioParams = ArrakisMath.SwapRatioParams({
+                inputToken: vars.inputToken,
+                inputAmount: params.inputAmount,
+                token0: vars.token0,
+                token1: vars.token1,
+                path0: params.path0.path,
+                path1: params.path1.path,
+                uniV3PoolFees0: params.path0.uniV3PoolFees,
+                uniV3PoolFees1: params.path1.uniV3PoolFees,
+                arrakisPool: vars.arrakisPool,
+                uniV2Router0: params.path0.swapRouter,
+                uniV2Router1: params.path1.swapRouter,
+                uniV3Factory: IArrakisRouter(params.liquidityPath.lpRouter).factory()
+            });
+            (vars.amount0, vars.amount1) = ArrakisMath.getSwapRatio(swapRatioParams);
             vars.weightedPrice0 = vars.inputToken == vars.token0
                 ? 1e18
                 : ArrakisMath.getWeightedPrice(
@@ -226,31 +195,20 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
                     params.path1.swapRouter,
                     IArrakisRouter(params.liquidityPath.lpRouter).factory()
                 );
-            minAmountsLP = [
-                (vars.amount0 * vars.weightedPrice0) / 1e18,
-                (vars.amount1 * vars.weightedPrice1) / 1e18
-            ];
+            minAmountsLP = [(vars.amount0 * vars.weightedPrice0) / 1e18, (vars.amount1 * vars.weightedPrice1) / 1e18];
         }
     }
 
     function _zapInternal(ZapParams memory zapParams) internal {
         uint256 balanceBefore = _getBalance(zapParams.inputToken);
-        zapParams.inputToken.safeTransferFrom(
-            msg.sender,
-            address(this),
-            zapParams.inputAmount
-        );
-        zapParams.inputAmount =
-            _getBalance(zapParams.inputToken) -
-            balanceBefore;
+        zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
+        zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
 
         _zapPrivate(zapParams, false);
         emit Zap(zapParams);
     }
 
-    function _zapNativeInternal(ZapParamsNative memory zapParamsNative)
-        internal
-    {
+    function _zapNativeInternal(ZapParamsNative memory zapParamsNative) internal {
         uint256 inputAmount = msg.value;
         IERC20 inputToken = IERC20(WNATIVE);
         IWETH(WNATIVE).deposit{value: inputAmount}();
@@ -271,11 +229,7 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
         emit ZapNative(zapParams);
     }
 
-    function _transfer(
-        address token,
-        uint256 amount,
-        bool native
-    ) internal {
+    function _transfer(address token, uint256 amount, bool native) internal {
         if (amount == 0) return;
         if (token == WNATIVE && native) {
             IWETH(WNATIVE).withdraw(amount);
@@ -317,36 +271,21 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
     /// @param native Unwrap Wrapped Native tokens before transferring
     function _zapPrivate(ZapParams memory zapParams, bool native) private {
         // Verify inputs
-        require(
-            zapParams.to != address(0),
-            "ApeSwapZap: Can't zap to null address"
-        );
+        require(zapParams.to != address(0), "ApeSwapZap: Can't zap to null address");
         require(
             zapParams.path0.swapRouter != address(0) &&
                 zapParams.path1.swapRouter != address(0) &&
                 zapParams.liquidityPath.lpRouter != address(0),
             "ApeSwapZap: swap and lp routers can not be address(0)"
         );
-        require(
-            zapParams.token0 != address(0),
-            "ApeSwapZap: token0 can not be address(0)"
-        );
-        require(
-            zapParams.token1 != address(0),
-            "ApeSwapZap: token1 can not be address(0)"
-        );
+        require(zapParams.token0 != address(0), "ApeSwapZap: token0 can not be address(0)");
+        require(zapParams.token1 != address(0), "ApeSwapZap: token1 can not be address(0)");
         // Setup struct to prevent stack overflow
         LocalVars memory vars;
         // Ensure token addresses and paths are in ascending numerical order
         if (zapParams.token1 < zapParams.token0) {
-            (zapParams.token0, zapParams.token1) = (
-                zapParams.token1,
-                zapParams.token0
-            );
-            (zapParams.path0, zapParams.path1) = (
-                zapParams.path1,
-                zapParams.path0
-            );
+            (zapParams.token0, zapParams.token1) = (zapParams.token1, zapParams.token0);
+            (zapParams.path0, zapParams.path1) = (zapParams.path1, zapParams.path0);
         }
 
         /**
@@ -355,9 +294,10 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
         if (zapParams.liquidityPath.lpType == LPType.V2) {
             // Handle UniswapV2 Liquidity
             require(
-                IApeFactory(
-                    IApeRouter02(zapParams.liquidityPath.lpRouter).factory()
-                ).getPair(zapParams.token0, zapParams.token1) != address(0),
+                IApeFactory(IApeRouter02(zapParams.liquidityPath.lpRouter).factory()).getPair(
+                    zapParams.token0,
+                    zapParams.token1
+                ) != address(0),
                 "ApeSwapZap: Pair doesn't exist"
             );
             vars.amount0In = zapParams.inputAmount / 2;
@@ -367,42 +307,32 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
             revert("UniswapV3 LP is not yet supported");
         } else if (zapParams.liquidityPath.lpType == LPType.Arrakis) {
             // Handle Arrakis Liquidity
-            require(
-                zapParams.liquidityPath.arrakisFactory != address(0),
-                "ApeSwapZap: Arrakis factory missing"
+            require(zapParams.liquidityPath.arrakisFactory != address(0), "ApeSwapZap: Arrakis factory missing");
+            vars.uniV3Pool = IUniswapV3Factory(IArrakisRouter(zapParams.liquidityPath.lpRouter).factory()).getPool(
+                zapParams.token0,
+                zapParams.token1,
+                zapParams.liquidityPath.uniV3PoolLPFee
             );
-            vars.uniV3Pool = IUniswapV3Factory(
-                IArrakisRouter(zapParams.liquidityPath.lpRouter).factory()
-            ).getPool(
-                    zapParams.token0,
-                    zapParams.token1,
-                    zapParams.liquidityPath.uniV3PoolLPFee
-                );
             vars.arrakisPool = ArrakisMath.getArrakisPool(
                 vars.uniV3Pool,
                 IArrakisFactoryV1(zapParams.liquidityPath.arrakisFactory)
             );
 
-            ArrakisMath.SwapRatioParams memory swapRatioParams = ArrakisMath
-                .SwapRatioParams({
-                    inputToken: address(zapParams.inputToken),
-                    inputAmount: zapParams.inputAmount,
-                    token0: zapParams.token0,
-                    token1: zapParams.token1,
-                    path0: zapParams.path0.path,
-                    path1: zapParams.path1.path,
-                    uniV3PoolFees0: zapParams.path0.uniV3PoolFees,
-                    uniV3PoolFees1: zapParams.path1.uniV3PoolFees,
-                    arrakisPool: vars.arrakisPool,
-                    uniV2Router0: zapParams.path0.swapRouter,
-                    uniV2Router1: zapParams.path1.swapRouter,
-                    uniV3Factory: IArrakisRouter(
-                        zapParams.liquidityPath.lpRouter
-                    ).factory()
-                });
-            (vars.amount0In, vars.amount1In) = ArrakisMath.getSwapRatio(
-                swapRatioParams
-            );
+            ArrakisMath.SwapRatioParams memory swapRatioParams = ArrakisMath.SwapRatioParams({
+                inputToken: address(zapParams.inputToken),
+                inputAmount: zapParams.inputAmount,
+                token0: zapParams.token0,
+                token1: zapParams.token1,
+                path0: zapParams.path0.path,
+                path1: zapParams.path1.path,
+                uniV3PoolFees0: zapParams.path0.uniV3PoolFees,
+                uniV3PoolFees1: zapParams.path1.uniV3PoolFees,
+                arrakisPool: vars.arrakisPool,
+                uniV2Router0: zapParams.path0.swapRouter,
+                uniV2Router1: zapParams.path1.swapRouter,
+                uniV3Factory: IArrakisRouter(zapParams.liquidityPath.lpRouter).factory()
+            });
+            (vars.amount0In, vars.amount1In) = ArrakisMath.getSwapRatio(swapRatioParams);
         } else {
             revert("ApeSwapZap: LPType not supported");
         }
@@ -411,24 +341,13 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
          * Handle token0 Swap
          */
         if (zapParams.token0 != address(zapParams.inputToken)) {
+            require(zapParams.path0.path[0] == address(zapParams.inputToken), "ApeSwapZap: wrong path path0[0]");
             require(
-                zapParams.path0.path[0] == address(zapParams.inputToken),
-                "ApeSwapZap: wrong path path0[0]"
-            );
-            require(
-                zapParams.path0.path[zapParams.path0.path.length - 1] ==
-                    zapParams.token0,
+                zapParams.path0.path[zapParams.path0.path.length - 1] == zapParams.token0,
                 "ApeSwapZap: wrong path path0[-1]"
             );
-            zapParams.inputToken.approve(
-                zapParams.path0.swapRouter,
-                vars.amount0In
-            );
-            vars.amount0Out = _routerSwapFromPath(
-                zapParams.path0,
-                vars.amount0In,
-                zapParams.deadline
-            );
+            zapParams.inputToken.approve(zapParams.path0.swapRouter, vars.amount0In);
+            vars.amount0Out = _routerSwapFromPath(zapParams.path0, vars.amount0In, zapParams.deadline);
         } else {
             vars.amount0Out = zapParams.inputAmount - vars.amount1In;
         }
@@ -436,24 +355,13 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
          * Handle token1 Swap
          */
         if (zapParams.token1 != address(zapParams.inputToken)) {
+            require(zapParams.path1.path[0] == address(zapParams.inputToken), "ApeSwapZap: wrong path path1[0]");
             require(
-                zapParams.path1.path[0] == address(zapParams.inputToken),
-                "ApeSwapZap: wrong path path1[0]"
-            );
-            require(
-                zapParams.path1.path[zapParams.path1.path.length - 1] ==
-                    zapParams.token1,
+                zapParams.path1.path[zapParams.path1.path.length - 1] == zapParams.token1,
                 "ApeSwapZap: wrong path path1[-1]"
             );
-            zapParams.inputToken.approve(
-                zapParams.path1.swapRouter,
-                vars.amount1In
-            );
-            vars.amount1Out = _routerSwapFromPath(
-                zapParams.path1,
-                vars.amount1In,
-                zapParams.deadline
-            );
+            zapParams.inputToken.approve(zapParams.path1.swapRouter, vars.amount1In);
+            vars.amount1Out = _routerSwapFromPath(zapParams.path1, vars.amount1In, zapParams.deadline);
         } else {
             vars.amount1Out = zapParams.inputAmount - vars.amount0In;
         }
@@ -461,68 +369,42 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
         /**
          * Handle Liquidity Add
          */
-        IERC20(zapParams.token0).approve(
-            address(zapParams.liquidityPath.lpRouter),
-            vars.amount0Out
-        );
-        IERC20(zapParams.token1).approve(
-            address(zapParams.liquidityPath.lpRouter),
-            vars.amount1Out
-        );
+        IERC20(zapParams.token0).approve(address(zapParams.liquidityPath.lpRouter), vars.amount0Out);
+        IERC20(zapParams.token1).approve(address(zapParams.liquidityPath.lpRouter), vars.amount1Out);
 
         if (zapParams.liquidityPath.lpType == LPType.V2) {
             // Add liquidity to UniswapV2 Pool
-            (vars.amount0Lp, vars.amount1Lp, ) = IApeRouter02(
-                zapParams.liquidityPath.lpRouter
-            ).addLiquidity(
-                    zapParams.token0,
-                    zapParams.token1,
-                    vars.amount0Out,
-                    vars.amount1Out,
-                    zapParams.liquidityPath.minAmountLP0,
-                    zapParams.liquidityPath.minAmountLP1,
-                    zapParams.to,
-                    zapParams.deadline
-                );
+            (vars.amount0Lp, vars.amount1Lp, ) = IApeRouter02(zapParams.liquidityPath.lpRouter).addLiquidity(
+                zapParams.token0,
+                zapParams.token1,
+                vars.amount0Out,
+                vars.amount1Out,
+                zapParams.liquidityPath.minAmountLP0,
+                zapParams.liquidityPath.minAmountLP1,
+                zapParams.to,
+                zapParams.deadline
+            );
         } else if (zapParams.liquidityPath.lpType == LPType.Arrakis) {
             // Add liquidity to Arrakis Pool
-            (vars.amount0Lp, vars.amount1Lp, ) = IArrakisRouter(
-                zapParams.liquidityPath.lpRouter
-            ).addLiquidity(
-                    IArrakisPool(vars.arrakisPool),
-                    vars.amount0Out,
-                    vars.amount1Out,
-                    zapParams.liquidityPath.minAmountLP0,
-                    zapParams.liquidityPath.minAmountLP1,
-                    zapParams.to
-                );
+            (vars.amount0Lp, vars.amount1Lp, ) = IArrakisRouter(zapParams.liquidityPath.lpRouter).addLiquidity(
+                IArrakisPool(vars.arrakisPool),
+                vars.amount0Out,
+                vars.amount1Out,
+                zapParams.liquidityPath.minAmountLP0,
+                zapParams.liquidityPath.minAmountLP1,
+                zapParams.to
+            );
         } else {
             revert("ApeSwapZap: lpType not supported");
         }
 
         if (zapParams.token0 == WNATIVE) {
             // Ensure WNATIVE is called last
-            _transfer(
-                zapParams.token1,
-                vars.amount1Out - vars.amount1Lp,
-                native
-            );
-            _transfer(
-                zapParams.token0,
-                vars.amount0Out - vars.amount0Lp,
-                native
-            );
+            _transfer(zapParams.token1, vars.amount1Out - vars.amount1Lp, native);
+            _transfer(zapParams.token0, vars.amount0Out - vars.amount0Lp, native);
         } else {
-            _transfer(
-                zapParams.token0,
-                vars.amount0Out - vars.amount0Lp,
-                native
-            );
-            _transfer(
-                zapParams.token1,
-                vars.amount1Out - vars.amount1Lp,
-                native
-            );
+            _transfer(zapParams.token0, vars.amount0Out - vars.amount0Lp, native);
+            _transfer(zapParams.token1, vars.amount1Out - vars.amount1Lp, native);
         }
     }
 
@@ -557,42 +439,22 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
     ) private {
         if (swapType == SwapType.V2) {
             // Perform UniV2 swap
-            require(
-                uniV3PoolFees.length == 0,
-                "ApeSwapZap: uniV3PoolFees should be empty on V2 swap"
-            );
-            IApeRouter02(router).swapExactTokensForTokens(
-                amountIn,
-                amountOutMin,
-                path,
-                address(this),
-                deadline
-            );
+            require(uniV3PoolFees.length == 0, "ApeSwapZap: uniV3PoolFees should be empty on V2 swap");
+            IApeRouter02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), deadline);
         } else if (swapType == SwapType.V3) {
             // Handle swapping with UNIV3_ROUTER
-            require(
-                path.length - 1 == uniV3PoolFees.length,
-                "ApeSwapZap: pool fees don't match path"
-            );
+            require(path.length - 1 == uniV3PoolFees.length, "ApeSwapZap: pool fees don't match path");
             bytes memory encodedPacked;
             for (uint256 index = 0; index < path.length - 1; index++) {
-                encodedPacked = abi.encodePacked(
-                    encodedPacked,
-                    path[index],
-                    uniV3PoolFees[index]
-                );
+                encodedPacked = abi.encodePacked(encodedPacked, path[index], uniV3PoolFees[index]);
             }
-            ISwapRouter.ExactInputParams memory params = ISwapRouter
-                .ExactInputParams({
-                    path: abi.encodePacked(
-                        encodedPacked,
-                        path[path.length - 1]
-                    ),
-                    recipient: address(this),
-                    deadline: block.timestamp,
-                    amountIn: amountIn,
-                    amountOutMinimum: amountOutMin
-                });
+            ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
+                path: abi.encodePacked(encodedPacked, path[path.length - 1]),
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: amountIn,
+                amountOutMinimum: amountOutMin
+            });
             // Perform UniV3 swap
             ISwapRouter(router).exactInput(params);
         } else {

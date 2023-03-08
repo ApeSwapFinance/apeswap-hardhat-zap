@@ -7,10 +7,7 @@ interface IPoolManager {
 
     function allLegacyPools() external view returns (address[] memory);
 
-    function viewTotalGovernanceHoldings(address userAddress)
-        external
-        view
-        returns (uint256);
+    function viewTotalGovernanceHoldings(address userAddress) external view returns (uint256);
 
     function getActivePoolCount() external view returns (uint256);
 

@@ -2,16 +2,16 @@
 pragma solidity ^0.8.4;
 
 /*
- * ApeSwapFinance 
+ * ApeSwapFinance
  * App:             https://apeswap.finance
- * Medium:          https://ape-swap.medium.com    
- * Twitter:         https://twitter.com/ape_swap 
+ * Medium:          https://ape-swap.medium.com
+ * Twitter:         https://twitter.com/ape_swap
  * Telegram:        https://t.me/ape_swap
  * Announcements:   https://t.me/ape_swap_news
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
@@ -22,15 +22,15 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
 
     // Info of each user.
     struct UserInfo {
-        uint256 amount;     // How many LP tokens the user has provided.
+        uint256 amount; // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
     }
 
     // Info of each pool.
     struct PoolInfo {
-        IERC20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. Rewards to distribute per block.
-        uint256 lastRewardBlock;  // Last block number that Rewards distribution occurs.
+        IERC20 lpToken; // Address of LP token contract.
+        uint256 allocPoint; // How many allocation points assigned to this pool. Rewards to distribute per block.
+        uint256 lastRewardBlock; // Last block number that Rewards distribution occurs.
         uint256 accRewardTokenPerShare; // Accumulated Rewards per share, times 1e30. See below.
     }
 
@@ -52,12 +52,12 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
     // Info of each pool.
     PoolInfo public poolInfo;
     // Info of each user that stakes LP tokens.
-    mapping (address => UserInfo) public userInfo;
+    mapping(address => UserInfo) public userInfo;
     // Total allocation poitns. Must be the sum of all allocation points in all pools.
     uint256 private totalAllocPoint = 0;
     // The block number when Reward mining starts.
     uint256 public startBlock;
-	// The block number when mining ends.
+    // The block number when mining ends.
     uint256 public bonusEndBlock;
 
     event Deposit(address indexed sender, address indexed user, uint256 amount);
@@ -75,8 +75,7 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
         uint256 _rewardPerBlock,
         uint256 _startBlock,
         uint256 _bonusEndBlock
-    ) external initializer
-    {
+    ) external initializer {
         STAKE_TOKEN = _stakeToken;
         REWARD_TOKEN = _rewardToken;
         rewardPerBlock = _rewardPerBlock;
@@ -107,7 +106,7 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
 
     /// @param  _bonusEndBlock The block when rewards will end
     function setBonusEndBlock(uint256 _bonusEndBlock) external onlyOwner {
-        require(_bonusEndBlock > block.number, 'new bonus end block must be greater than current');
+        require(_bonusEndBlock > block.number, "new bonus end block must be greater than current");
         bonusEndBlock = _bonusEndBlock;
         emit LogUpdatePool(bonusEndBlock, rewardPerBlock);
     }
@@ -118,10 +117,10 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
         uint256 accRewardTokenPerShare = poolInfo.accRewardTokenPerShare;
         if (block.number > poolInfo.lastRewardBlock && totalStaked != 0) {
             uint256 multiplier = getMultiplier(poolInfo.lastRewardBlock, block.number);
-            uint256 tokenReward = multiplier * rewardPerBlock * poolInfo.allocPoint / totalAllocPoint;
-            accRewardTokenPerShare = accRewardTokenPerShare + (tokenReward * 1e30 / totalStaked);
+            uint256 tokenReward = (multiplier * rewardPerBlock * poolInfo.allocPoint) / totalAllocPoint;
+            accRewardTokenPerShare = accRewardTokenPerShare + ((tokenReward * 1e30) / totalStaked);
         }
-        return user.amount * accRewardTokenPerShare / 1e30 - user.rewardDebt;
+        return (user.amount * accRewardTokenPerShare) / 1e30 - user.rewardDebt;
     }
 
     // Update reward variables of the given pool to be up-to-date.
@@ -134,9 +133,9 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
             return;
         }
         uint256 multiplier = getMultiplier(poolInfo.lastRewardBlock, block.number);
-        uint256 tokenReward = multiplier * rewardPerBlock * poolInfo.allocPoint / totalAllocPoint;
+        uint256 tokenReward = (multiplier * rewardPerBlock * poolInfo.allocPoint) / totalAllocPoint;
         totalRewardsAllocated += tokenReward;
-        poolInfo.accRewardTokenPerShare = poolInfo.accRewardTokenPerShare + (tokenReward * 1e30 / totalStaked);
+        poolInfo.accRewardTokenPerShare = poolInfo.accRewardTokenPerShare + ((tokenReward * 1e30) / totalStaked);
         poolInfo.lastRewardBlock = block.number;
     }
 
@@ -157,8 +156,8 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
         UserInfo storage user = userInfo[_user];
         updatePool();
         if (user.amount > 0) {
-            uint256 pending = user.amount * poolInfo.accRewardTokenPerShare / 1e30 - user.rewardDebt;
-            if(pending > 0) {
+            uint256 pending = (user.amount * poolInfo.accRewardTokenPerShare) / 1e30 - user.rewardDebt;
+            if (pending > 0) {
                 // If rewardBalance is low then revert to avoid losing the user's rewards
                 require(rewardBalance() >= pending, "insufficient reward balance");
                 safeTransferRewardInternal(_user, pending);
@@ -173,7 +172,7 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
             user.amount = user.amount + finalDepositAmount;
             totalStaked = totalStaked + finalDepositAmount;
         }
-        user.rewardDebt = user.amount * poolInfo.accRewardTokenPerShare / 1e30;
+        user.rewardDebt = (user.amount * poolInfo.accRewardTokenPerShare) / 1e30;
 
         emit Deposit(msg.sender, _user, finalDepositAmount);
     }
@@ -184,20 +183,20 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
         UserInfo storage user = userInfo[msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool();
-        uint256 pending = user.amount * poolInfo.accRewardTokenPerShare / 1e30 - user.rewardDebt;
-        if(pending > 0) {
+        uint256 pending = (user.amount * poolInfo.accRewardTokenPerShare) / 1e30 - user.rewardDebt;
+        if (pending > 0) {
             // If rewardBalance is low then revert to avoid losing the user's rewards
             require(rewardBalance() >= pending, "insufficient reward balance");
             safeTransferRewardInternal(address(msg.sender), pending);
         }
 
-        if(_amount > 0) {
+        if (_amount > 0) {
             user.amount = user.amount - _amount;
             poolInfo.lpToken.safeTransfer(address(msg.sender), _amount);
             totalStaked = totalStaked - _amount;
         }
 
-        user.rewardDebt = user.amount * poolInfo.accRewardTokenPerShare / 1e30;
+        user.rewardDebt = (user.amount * poolInfo.accRewardTokenPerShare) / 1e30;
 
         emit Withdraw(msg.sender, _amount);
     }
@@ -220,7 +219,7 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
 
     // Deposit Rewards into contract
     function depositRewards(uint256 _amount) external {
-        require(_amount > 0, 'Deposit value must be greater than 0.');
+        require(_amount > 0, "Deposit value must be greater than 0.");
         REWARD_TOKEN.safeTransferFrom(address(msg.sender), address(this), _amount);
         emit DepositRewards(_amount);
     }
@@ -234,8 +233,7 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
 
     /// @dev Obtain the stake balance of this contract
     function totalStakeTokenBalance() public view returns (uint256) {
-        if (STAKE_TOKEN == REWARD_TOKEN)
-            return totalStaked;
+        if (STAKE_TOKEN == REWARD_TOKEN) return totalStaked;
         return STAKE_TOKEN.balanceOf(address(this));
     }
 
@@ -253,7 +251,7 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
         emit LogUpdatePool(bonusEndBlock, rewardPerBlock);
     }
 
-        /// @dev Remove excess stake tokens earned by reflect fees
+    /// @dev Remove excess stake tokens earned by reflect fees
     function skimStakeTokenFees(address _to) external onlyOwner {
         uint256 stakeTokenFeeBalance = getStakeTokenFeeBalance();
         STAKE_TOKEN.safeTransfer(_to, stakeTokenFeeBalance);
@@ -274,7 +272,7 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
 
     // Withdraw reward. EMERGENCY ONLY.
     function emergencyRewardWithdraw(uint256 _amount) external onlyOwner {
-        require(_amount <= rewardBalance(), 'not enough rewards');
+        require(_amount <= rewardBalance(), "not enough rewards");
         // Withdraw rewards
         REWARD_TOKEN.safeTransfer(msg.sender, _amount);
         emit EmergencyRewardWithdraw(msg.sender, _amount);
@@ -290,5 +288,4 @@ contract BEP20RewardApeV5 is ReentrancyGuard, Ownable, Initializable {
         token.safeTransfer(msg.sender, balance);
         emit EmergencySweepWithdraw(msg.sender, token, balance);
     }
-
 }

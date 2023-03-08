@@ -47,30 +47,19 @@ library ArrakisMath {
     /// uniV3PoolFees1 uniV3 pool fees for path1
     /// arrakisPool arrakis pool
     /// uniV3Factory uniV3 factory
-    function getSwapRatio(SwapRatioParams memory swapRatioParams)
-        internal
-        view
-        returns (uint256 amount0, uint256 amount1)
-    {
+    function getSwapRatio(
+        SwapRatioParams memory swapRatioParams
+    ) internal view returns (uint256 amount0, uint256 amount1) {
         SwapRatioLocalVars memory vars;
 
-        (vars.underlying0, vars.underlying1) = IArrakisPool(
-            swapRatioParams.arrakisPool
-        ).getUnderlyingBalances();
+        (vars.underlying0, vars.underlying1) = IArrakisPool(swapRatioParams.arrakisPool).getUnderlyingBalances();
 
         vars.token0decimals = ERC20(address(swapRatioParams.token0)).decimals();
         vars.token1decimals = ERC20(address(swapRatioParams.token1)).decimals();
-        vars.underlying0 = _normalizeTokenDecimals(
-            vars.underlying0,
-            vars.token0decimals
-        );
-        vars.underlying1 = _normalizeTokenDecimals(
-            vars.underlying1,
-            vars.token1decimals
-        );
+        vars.underlying0 = _normalizeTokenDecimals(vars.underlying0, vars.token0decimals);
+        vars.underlying1 = _normalizeTokenDecimals(vars.underlying1, vars.token1decimals);
 
-        vars.weightedPrice0 = swapRatioParams.inputToken ==
-            swapRatioParams.token0
+        vars.weightedPrice0 = swapRatioParams.inputToken == swapRatioParams.token0
             ? 1e18
             : getWeightedPrice(
                 swapRatioParams.path0,
@@ -78,8 +67,7 @@ library ArrakisMath {
                 swapRatioParams.uniV2Router0,
                 swapRatioParams.uniV3Factory
             );
-        vars.weightedPrice1 = swapRatioParams.inputToken ==
-            swapRatioParams.token1
+        vars.weightedPrice1 = swapRatioParams.inputToken == swapRatioParams.token1
             ? 1e18
             : getWeightedPrice(
                 swapRatioParams.path1,
@@ -89,19 +77,15 @@ library ArrakisMath {
             );
 
         vars.percentage0 =
-            (((vars.underlying0 * 1e18) /
-                (vars.underlying0 + vars.underlying1)) * vars.weightedPrice0) /
+            (((vars.underlying0 * 1e18) / (vars.underlying0 + vars.underlying1)) * vars.weightedPrice0) /
             (vars.weightedPrice0 + vars.weightedPrice1);
 
         vars.percentage1 =
-            (((vars.underlying1 * 1e18) /
-                (vars.underlying0 + vars.underlying1)) * vars.weightedPrice1) /
+            (((vars.underlying1 * 1e18) / (vars.underlying0 + vars.underlying1)) * vars.weightedPrice1) /
             (vars.weightedPrice0 + vars.weightedPrice1);
 
         amount0 =
-            (((vars.percentage0 * 1e18) /
-                (vars.percentage0 + vars.percentage1)) *
-                swapRatioParams.inputAmount) /
+            (((vars.percentage0 * 1e18) / (vars.percentage0 + vars.percentage1)) * swapRatioParams.inputAmount) /
             1e18;
 
         amount1 = swapRatioParams.inputAmount - amount0;
@@ -110,12 +94,8 @@ library ArrakisMath {
     /// @notice Normalize token decimals to 18
     /// @param amount Amount of tokens
     /// @param decimals Decimals of given token amount to scale. MUST be <=18
-    function _normalizeTokenDecimals(uint256 amount, uint256 decimals)
-        internal
-        pure
-        returns (uint256)
-    {
-        return amount * 10**(18 - decimals);
+    function _normalizeTokenDecimals(uint256 amount, uint256 decimals) internal pure returns (uint256) {
+        return amount * 10 ** (18 - decimals);
     }
 
     /// @notice Returns value based on other token
@@ -133,22 +113,13 @@ library ArrakisMath {
         if (uniV3PoolFees.length == 0) {
             uint256 tokenDecimals = getTokenDecimals(path[path.length - 1]);
 
-            uint256[] memory amountsOut0 = IApeRouter02(uniV2Router)
-                .getAmountsOut(1e18, path);
-            weightedPrice = _normalizeTokenDecimals(
-                amountsOut0[amountsOut0.length - 1],
-                tokenDecimals
-            );
+            uint256[] memory amountsOut0 = IApeRouter02(uniV2Router).getAmountsOut(1e18, path);
+            weightedPrice = _normalizeTokenDecimals(amountsOut0[amountsOut0.length - 1], tokenDecimals);
         } else {
             for (uint256 index = 0; index < path.length - 1; index++) {
                 weightedPrice =
                     (weightedPrice *
-                        pairTokensAndValue(
-                            path[index],
-                            path[index + 1],
-                            uniV3PoolFees[index],
-                            uniV3Factory
-                        )) /
+                        pairTokensAndValue(path[index], path[index + 1], uniV3PoolFees[index], uniV3Factory)) /
                     1e18;
             }
         }
@@ -166,11 +137,7 @@ library ArrakisMath {
         uint24 fee,
         address uniV3Factory
     ) internal view returns (uint256 price) {
-        address tokenPegPair = IUniswapV3Factory(uniV3Factory).getPool(
-            token0,
-            token1,
-            fee
-        );
+        address tokenPegPair = IUniswapV3Factory(uniV3Factory).getPool(token0, token1, fee);
 
         // if the address has no contract deployed, the pair doesn't exist
         uint256 size;
@@ -187,23 +154,13 @@ library ArrakisMath {
         uint256 token1Decimals = getTokenDecimals(token1);
 
         if (token1 < token0) {
-            price =
-                (2**192) /
-                ((sqrtPriceX96)**2 /
-                    uint256(10**(token0Decimals + 18 - token1Decimals)));
+            price = (2 ** 192) / ((sqrtPriceX96) ** 2 / uint256(10 ** (token0Decimals + 18 - token1Decimals)));
         } else {
-            price =
-                ((sqrtPriceX96)**2) /
-                ((2**192) /
-                    uint256(10**(token0Decimals + 18 - token1Decimals)));
+            price = ((sqrtPriceX96) ** 2) / ((2 ** 192) / uint256(10 ** (token0Decimals + 18 - token1Decimals)));
         }
     }
 
-    function getTokenDecimals(address token)
-        private
-        view
-        returns (uint256 decimals)
-    {
+    function getTokenDecimals(address token) private view returns (uint256 decimals) {
         try ERC20(token).decimals() returns (uint8 dec) {
             decimals = dec;
         } catch {
@@ -215,11 +172,7 @@ library ArrakisMath {
     /// @param uniV3Pool uniV3 pool
     /// @param arrakisFactory arrakis factory
     /// @return pool Arrakis pool
-    function getArrakisPool(address uniV3Pool, IArrakisFactoryV1 arrakisFactory)
-        internal
-        view
-        returns (address)
-    {
+    function getArrakisPool(address uniV3Pool, IArrakisFactoryV1 arrakisFactory) internal view returns (address) {
         address[] memory deployers = arrakisFactory.getDeployers();
         for (uint256 i = 0; i < deployers.length; i++) {
             address[] memory pools = arrakisFactory.getPools(deployers[i]);

@@ -37,28 +37,15 @@ contract LPBalanceCheckerPolygon is Ownable {
         }
     }
 
-    function getBalance(address user, uint256 customArraySize)
-        external
-        view
-        returns (Balances[] memory pBalances)
-    {
+    function getBalance(address user, uint256 customArraySize) external view returns (Balances[] memory pBalances) {
         pBalances = new Balances[](stakingContracts.length);
         for (uint256 i = 0; i < stakingContracts.length; i++) {
-            if (
-                stakingContracts[i] == address(quickswapStakingRewardsFactory)
-            ) {
-                pBalances[i] = getBalanceQuickswap(
-                    user,
-                    customArraySize,
-                    false
-                );
+            if (stakingContracts[i] == address(quickswapStakingRewardsFactory)) {
+                pBalances[i] = getBalanceQuickswap(user, customArraySize, false);
                 continue;
             }
 
-            if (
-                stakingContracts[i] ==
-                address(quickswapDualStakingRewardsFactory)
-            ) {
+            if (stakingContracts[i] == address(quickswapDualStakingRewardsFactory)) {
                 pBalances[i] = getBalanceQuickswap(user, customArraySize, true);
                 continue;
             }
@@ -66,19 +53,11 @@ contract LPBalanceCheckerPolygon is Ownable {
             IMasterApe stakingContract = IMasterApe(stakingContracts[i]);
             pBalances[i].stakingAddress = address(stakingContract);
 
-            Balance[] memory tempBalances = new Balance[](
-                stakingContract.poolLength()
-            );
+            Balance[] memory tempBalances = new Balance[](stakingContract.poolLength());
             uint256 balanceCount;
 
-            for (
-                uint256 poolId = 0;
-                poolId < stakingContract.poolLength();
-                poolId++
-            ) {
-                (address lpTokenAddress, , , ) = stakingContract.poolInfo(
-                    poolId
-                );
+            for (uint256 poolId = 0; poolId < stakingContract.poolLength(); poolId++) {
+                (address lpTokenAddress, , , ) = stakingContract.poolInfo(poolId);
                 (uint256 amount, ) = stakingContract.userInfo(poolId, user);
 
                 IApePair lpToken = IApePair(lpTokenAddress);
@@ -99,15 +78,8 @@ contract LPBalanceCheckerPolygon is Ownable {
                 tempBalances[poolId] = balance;
             }
 
-            for (
-                uint256 balanceIndex = 0;
-                balanceIndex < tempBalances.length;
-                balanceIndex++
-            ) {
-                if (
-                    tempBalances[balanceIndex].total > 0 &&
-                    tempBalances[balanceIndex].token0 != address(0)
-                ) {
+            for (uint256 balanceIndex = 0; balanceIndex < tempBalances.length; balanceIndex++) {
+                if (tempBalances[balanceIndex].total > 0 && tempBalances[balanceIndex].token0 != address(0)) {
                     balanceCount++;
                 }
             }
@@ -115,15 +87,8 @@ contract LPBalanceCheckerPolygon is Ownable {
             Balance[] memory balances = new Balance[](balanceCount);
             uint256 newIndex = 0;
 
-            for (
-                uint256 balanceIndex = 0;
-                balanceIndex < tempBalances.length;
-                balanceIndex++
-            ) {
-                if (
-                    tempBalances[balanceIndex].total > 0 &&
-                    tempBalances[balanceIndex].token0 != address(0)
-                ) {
+            for (uint256 balanceIndex = 0; balanceIndex < tempBalances.length; balanceIndex++) {
+                if (tempBalances[balanceIndex].total > 0 && tempBalances[balanceIndex].token0 != address(0)) {
                     balances[newIndex] = tempBalances[balanceIndex];
                     newIndex++;
                 }
@@ -139,9 +104,7 @@ contract LPBalanceCheckerPolygon is Ownable {
         bool dual
     ) public view returns (Balances memory pBalance) {
         if (dual) {
-            pBalance.stakingAddress = address(
-                quickswapDualStakingRewardsFactory
-            );
+            pBalance.stakingAddress = address(quickswapDualStakingRewardsFactory);
         } else {
             pBalance.stakingAddress = address(quickswapStakingRewardsFactory);
         }
@@ -149,40 +112,27 @@ contract LPBalanceCheckerPolygon is Ownable {
         Balance[] memory tempBalances = new Balance[](customArraySize);
         uint256 balanceCount;
 
-        for (
-            uint256 pairIndex = 0;
-            pairIndex < type(uint256).max;
-            pairIndex++
-        ) {
+        for (uint256 pairIndex = 0; pairIndex < type(uint256).max; pairIndex++) {
             address lpTokenAddress;
             address stakingRewards;
 
             if (dual) {
-                try
-                    quickswapDualStakingRewardsFactory.stakingTokens(pairIndex)
-                returns (address _lpAddress) {
+                try quickswapDualStakingRewardsFactory.stakingTokens(pairIndex) returns (address _lpAddress) {
                     lpTokenAddress = _lpAddress;
-                    (
-                        stakingRewards,
-                        ,
-                        ,
-                        ,
-                        ,
-
-                    ) = quickswapDualStakingRewardsFactory
-                        .stakingRewardsInfoByStakingToken(lpTokenAddress);
+                    (stakingRewards, , , , , ) = quickswapDualStakingRewardsFactory.stakingRewardsInfoByStakingToken(
+                        lpTokenAddress
+                    );
                 } catch (bytes memory) {
                     break;
                 } catch Error(string memory) {
                     break;
                 }
             } else {
-                try
-                    quickswapStakingRewardsFactory.stakingTokens(pairIndex)
-                returns (address _lpAddress) {
+                try quickswapStakingRewardsFactory.stakingTokens(pairIndex) returns (address _lpAddress) {
                     lpTokenAddress = _lpAddress;
-                    (stakingRewards, , ) = quickswapStakingRewardsFactory
-                        .stakingRewardsInfoByStakingToken(lpTokenAddress);
+                    (stakingRewards, , ) = quickswapStakingRewardsFactory.stakingRewardsInfoByStakingToken(
+                        lpTokenAddress
+                    );
                 } catch (bytes memory) {
                     break;
                 } catch Error(string memory) {
@@ -193,9 +143,7 @@ contract LPBalanceCheckerPolygon is Ownable {
                 continue;
             }
 
-            uint256 amount = IStakingDualRewards(stakingRewards).balanceOf(
-                user
-            );
+            uint256 amount = IStakingDualRewards(stakingRewards).balanceOf(user);
 
             IApePair lpToken = IApePair(lpTokenAddress);
 
@@ -219,15 +167,8 @@ contract LPBalanceCheckerPolygon is Ownable {
             tempBalances[pairIndex] = balance;
         }
 
-        for (
-            uint256 balanceIndex = 0;
-            balanceIndex < tempBalances.length;
-            balanceIndex++
-        ) {
-            if (
-                tempBalances[balanceIndex].total > 0 &&
-                tempBalances[balanceIndex].token0 != address(0)
-            ) {
+        for (uint256 balanceIndex = 0; balanceIndex < tempBalances.length; balanceIndex++) {
+            if (tempBalances[balanceIndex].total > 0 && tempBalances[balanceIndex].token0 != address(0)) {
                 balanceCount++;
             }
         }
@@ -235,15 +176,8 @@ contract LPBalanceCheckerPolygon is Ownable {
         Balance[] memory balances = new Balance[](balanceCount);
         uint256 newIndex = 0;
 
-        for (
-            uint256 balanceIndex = 0;
-            balanceIndex < tempBalances.length;
-            balanceIndex++
-        ) {
-            if (
-                tempBalances[balanceIndex].total > 0 &&
-                tempBalances[balanceIndex].token0 != address(0)
-            ) {
+        for (uint256 balanceIndex = 0; balanceIndex < tempBalances.length; balanceIndex++) {
+            if (tempBalances[balanceIndex].total > 0 && tempBalances[balanceIndex].token0 != address(0)) {
                 balances[newIndex] = tempBalances[balanceIndex];
                 newIndex++;
             }

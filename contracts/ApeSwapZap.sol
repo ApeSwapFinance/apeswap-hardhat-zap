@@ -56,10 +56,7 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
     /// @dev The receive method is used as a fallback function in a contract
     /// and is called when ether is sent to a contract with no calldata.
     receive() external payable {
-        require(
-            msg.sender == WNATIVE,
-            "ApeSwapZap: Only receive ether from wrapped"
-        );
+        require(msg.sender == WNATIVE, "ApeSwapZap: Only receive ether from wrapped");
     }
 
     /// @notice Zap single token to LP
@@ -113,15 +110,7 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
         address to,
         uint256 deadline
     ) external payable override nonReentrant {
-        _zapNativeInternal(
-            underlyingTokens,
-            path0,
-            path1,
-            minAmountsSwap,
-            minAmountsLP,
-            to,
-            deadline
-        );
+        _zapNativeInternal(underlyingTokens, path0, path1, minAmountsSwap, minAmountsLP, to, deadline);
     }
 
     /// @notice get min amounts for swaps
@@ -132,37 +121,20 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
         uint256 inputAmount,
         address[] calldata path0,
         address[] calldata path1
-    )
-        external
-        view
-        override
-        returns (
-            uint256[2] memory minAmountsSwap,
-            uint256[2] memory minAmountsLP
-        )
-    {
-        require(
-            path0.length >= 2 || path1.length >= 2,
-            "ApeSwapZap: Needs at least one path"
-        );
+    ) external view override returns (uint256[2] memory minAmountsSwap, uint256[2] memory minAmountsLP) {
+        require(path0.length >= 2 || path1.length >= 2, "ApeSwapZap: Needs at least one path");
 
         uint256 inputAmountHalf = inputAmount / 2;
 
         uint256 minAmountSwap0 = inputAmountHalf;
         if (path0.length != 0) {
-            uint256[] memory amountsOut0 = router.getAmountsOut(
-                inputAmountHalf,
-                path0
-            );
+            uint256[] memory amountsOut0 = router.getAmountsOut(inputAmountHalf, path0);
             minAmountSwap0 = amountsOut0[amountsOut0.length - 1];
         }
 
         uint256 minAmountSwap1 = inputAmountHalf;
         if (path1.length != 0) {
-            uint256[] memory amountsOut1 = router.getAmountsOut(
-                inputAmountHalf,
-                path1
-            );
+            uint256[] memory amountsOut1 = router.getAmountsOut(inputAmountHalf, path1);
             minAmountSwap1 = amountsOut1[amountsOut1.length - 1];
         }
 
@@ -221,7 +193,7 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
     ) internal {
         uint256 inputAmount = msg.value;
         IERC20 inputToken = IERC20(WNATIVE);
-        IWETH(WNATIVE).deposit{ value: inputAmount }();
+        IWETH(WNATIVE).deposit{value: inputAmount}();
 
         _zapPrivate(
             inputToken,
@@ -244,7 +216,7 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
             IWETH(WNATIVE).withdraw(amount);
             // 2600 COLD_ACCOUNT_ACCESS_COST plus 2300 transfer gas - 1
             // Intended to support transfers to contracts, but not allow for further code execution
-            (bool success, ) = msg.sender.call{ value: amount, gas: 4899 }("");
+            (bool success, ) = msg.sender.call{value: amount, gas: 4899}("");
             require(success, "native transfer error");
         } else {
             IERC20(token).safeTransfer(msg.sender, amount);
@@ -268,10 +240,7 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
         bool native
     ) private {
         require(to != address(0), "ApeSwapZap: Can't zap to null address");
-        require(
-            underlyingTokens.length == 2,
-            "ApeSwapZap: need exactly 2 tokens to form a LP"
-        );
+        require(underlyingTokens.length == 2, "ApeSwapZap: need exactly 2 tokens to form a LP");
         require(
             factory.getPair(underlyingTokens[0], underlyingTokens[1]) != address(0),
             "ApeSwapZap: Pair doesn't exist"
@@ -284,48 +253,20 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
         vars.amount0 = inputAmount / 2;
         vars.balanceBefore = 0;
         if (underlyingTokens[0] != address(inputToken)) {
-            require(
-                path0[0] == address(inputToken),
-                "ApeSwapZap: wrong path path0[0]"
-            );
-            require(
-                path0[path0.length - 1] == underlyingTokens[0],
-                "ApeSwapZap: wrong path path0[-1]"
-            );
+            require(path0[0] == address(inputToken), "ApeSwapZap: wrong path path0[0]");
+            require(path0[path0.length - 1] == underlyingTokens[0], "ApeSwapZap: wrong path path0[-1]");
             vars.balanceBefore = _getBalance(IERC20(underlyingTokens[0]));
-            router.swapExactTokensForTokens(
-                vars.amount0,
-                minAmountsSwap[0],
-                path0,
-                address(this),
-                deadline
-            );
-            vars.amount0 =
-                _getBalance(IERC20(underlyingTokens[0])) -
-                vars.balanceBefore;
+            router.swapExactTokensForTokens(vars.amount0, minAmountsSwap[0], path0, address(this), deadline);
+            vars.amount0 = _getBalance(IERC20(underlyingTokens[0])) - vars.balanceBefore;
         }
 
         vars.amount1 = inputAmount / 2;
         if (underlyingTokens[1] != address(inputToken)) {
-            require(
-                path1[0] == address(inputToken),
-                "ApeSwapZap: wrong path path1[0]"
-            );
-            require(
-                path1[path1.length - 1] == underlyingTokens[1],
-                "ApeSwapZap: wrong path path1[-1]"
-            );
+            require(path1[0] == address(inputToken), "ApeSwapZap: wrong path path1[0]");
+            require(path1[path1.length - 1] == underlyingTokens[1], "ApeSwapZap: wrong path path1[-1]");
             vars.balanceBefore = _getBalance(IERC20(underlyingTokens[1]));
-            router.swapExactTokensForTokens(
-                vars.amount1,
-                minAmountsSwap[1],
-                path1,
-                address(this),
-                deadline
-            );
-            vars.amount1 =
-                _getBalance(IERC20(underlyingTokens[1])) -
-                vars.balanceBefore;
+            router.swapExactTokensForTokens(vars.amount1, minAmountsSwap[1], path1, address(this), deadline);
+            vars.amount1 = _getBalance(IERC20(underlyingTokens[1])) - vars.balanceBefore;
         }
 
         IERC20(underlyingTokens[0]).approve(address(router), vars.amount0);

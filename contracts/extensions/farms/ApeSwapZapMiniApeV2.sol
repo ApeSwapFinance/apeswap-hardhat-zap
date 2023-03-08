@@ -87,15 +87,7 @@ abstract contract ApeSwapZapMiniApeV2 is ApeSwapZap {
             "ApeSwapZap: Wrong LP pair for Dual Farm"
         );
 
-        _zapNativeInternal(
-            underlyingTokens,
-            path0,
-            path1,
-            minAmountsSwap,
-            minAmountsLP,
-            address(this),
-            deadline
-        );
+        _zapNativeInternal(underlyingTokens, path0, path1, minAmountsSwap, minAmountsLP, address(this), deadline);
 
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(miniApe), balance);

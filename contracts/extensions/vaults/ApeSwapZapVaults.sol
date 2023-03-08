@@ -35,9 +35,7 @@ abstract contract ApeSwapZapVaults is ApeSwapZap {
         IMaximizerVaultApe maximizerVaultApe,
         uint256 vaultPid
     ) external nonReentrant {
-        IBaseBananaMaximizerStrategy vault = IBaseBananaMaximizerStrategy(
-            maximizerVaultApe.vaults(vaultPid)
-        );
+        IBaseBananaMaximizerStrategy vault = IBaseBananaMaximizerStrategy(maximizerVaultApe.vaults(vaultPid));
         IApePair pair = IApePair(vault.STAKE_TOKEN_ADDRESS());
         require(
             (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
@@ -82,9 +80,7 @@ abstract contract ApeSwapZapVaults is ApeSwapZap {
         IMaximizerVaultApe maximizerVaultApe,
         uint256 vaultPid
     ) external payable nonReentrant {
-        IBaseBananaMaximizerStrategy vault = IBaseBananaMaximizerStrategy(
-            maximizerVaultApe.vaults(vaultPid)
-        );
+        IBaseBananaMaximizerStrategy vault = IBaseBananaMaximizerStrategy(maximizerVaultApe.vaults(vaultPid));
         IApePair pair = IApePair(vault.STAKE_TOKEN_ADDRESS());
         require(
             (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
@@ -92,15 +88,7 @@ abstract contract ApeSwapZapVaults is ApeSwapZap {
             "ApeSwapZap: Wrong LP pair for Vault"
         );
 
-        _zapNativeInternal(
-            underlyingTokens,
-            path0,
-            path1,
-            minAmountsSwap,
-            minAmountsLP,
-            address(this),
-            deadline
-        );
+        _zapNativeInternal(underlyingTokens, path0, path1, minAmountsSwap, minAmountsLP, address(this), deadline);
 
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(maximizerVaultApe), balance);

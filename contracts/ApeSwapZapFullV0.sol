@@ -29,13 +29,6 @@ import "./extensions/ApeSwapZapLPMigrator.sol";
 import "./extensions/bills/ApeSwapZapTBills.sol";
 import "./lib/IApeRouter02.sol";
 
-contract ApeSwapZapFullV0 is
-    ApeSwapZap,
-    ApeSwapZapTBills,
-    ApeSwapZapLPMigrator
-{
-    constructor(IApeRouter02 _router)
-        ApeSwapZap(_router)
-        ApeSwapZapLPMigrator(_router)
-    {}
+contract ApeSwapZapFullV0 is ApeSwapZap, ApeSwapZapTBills, ApeSwapZapLPMigrator {
+    constructor(IApeRouter02 _router) ApeSwapZap(_router) ApeSwapZapLPMigrator(_router) {}
 }
