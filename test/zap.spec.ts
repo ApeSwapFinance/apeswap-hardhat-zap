@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { dex, utils } from '@ape.swap/hardhat-test-helpers'
+import { utils, dex } from '@ape.swap/hardhat-test-helpers'
 import { mine, time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import { ethers } from 'hardhat'

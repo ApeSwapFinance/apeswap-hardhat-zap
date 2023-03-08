@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { dex, utils } from '@ape.swap/hardhat-test-helpers'
+import { dex, dexV3, dexV2AndV3, utils } from '@ape.swap/hardhat-test-helpers'
 import { mine, time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import { ethers } from 'hardhat'
@@ -26,7 +26,7 @@ describe('ZapV2', function () {
 
     const [owner, feeTo, alice] = await ethers.getSigners()
 
-    const { dexFactory, dexRouter, mockWBNB, mockTokens, dexPairs } = await dex.deployMockDex(
+    const { DEXV2, DEXV3, mockTokens, mockWBNB, router } = await dexV2AndV3.deployDexesAndRouter(
       ethers,
       [owner, feeTo, alice],
       5
@@ -47,12 +47,12 @@ describe('ZapV2', function () {
     await ethereum.connect(alice).mint(ether('1000'))
     await busd.connect(alice).mint(ether('1000'))
 
-    await banana.approve(dexRouter.address, ether('3000'))
-    await bitcoin.approve(dexRouter.address, ether('3000'))
-    await ethereum.approve(dexRouter.address, ether('3000'))
-    await busd.approve(dexRouter.address, ether('3000'))
+    await banana.approve(DEXV2.dexRouter.address, ether('3000'))
+    await bitcoin.approve(DEXV2.dexRouter.address, ether('3000'))
+    await ethereum.approve(DEXV2.dexRouter.address, ether('3000'))
+    await busd.approve(DEXV2.dexRouter.address, ether('3000'))
 
-    await dexRouter.addLiquidity(
+    await DEXV2.dexRouter.addLiquidity(
       banana.address,
       bitcoin.address,
       ether('1000'),
@@ -62,7 +62,7 @@ describe('ZapV2', function () {
       owner.address,
       '9999999999'
     )
-    await dexRouter.addLiquidity(
+    await DEXV2.dexRouter.addLiquidity(
       banana.address,
       ethereum.address,
       ether('1000'),
@@ -72,7 +72,7 @@ describe('ZapV2', function () {
       owner.address,
       '9999999999'
     )
-    await dexRouter.addLiquidity(
+    await DEXV2.dexRouter.addLiquidity(
       bitcoin.address,
       ethereum.address,
       ether('1000'),
@@ -82,7 +82,7 @@ describe('ZapV2', function () {
       owner.address,
       '9999999999'
     )
-    await dexRouter.addLiquidity(
+    await DEXV2.dexRouter.addLiquidity(
       banana.address,
       busd.address,
       ether('1000'),
@@ -102,9 +102,9 @@ describe('ZapV2', function () {
 
     return {
       zapContract,
-      dexFactory,
-      dexRouter,
-      mockWBNB,
+      DEXV2,
+      DEXV3,
+      mockWBNB: DEXV2.mockWBNB,
       banana,
       bitcoin,
       ethereum,
@@ -115,465 +115,467 @@ describe('ZapV2', function () {
     }
   }
 
-  it('Should be able to do a token -> token-token zap', async () => {
-    const { zapContract, dexFactory, dexRouter, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
-      await loadFixture(deployDexAndZap)
-
-    const lp = await dexFactory.getPair(banana.address, bitcoin.address)
-    const lpContract = await ethers.getContractAt('IApePair', lp)
-    const balanceBefore = await lpContract.balanceOf(signers.alice.address)
-
-    const swapPath0 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const swapPath1 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [banana.address, bitcoin.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const liquidityPath = {
-      lpRouter: dexRouter.address,
-      lpType: LPType.V2,
-      minAmountLP0: 0,
-      minAmountLP1: 0,
-      uniV3PoolLPFee: 0,
-      arrakisFactory: NULL_ADDRESS,
-    }
-
-    const zapParams = {
-      inputToken: banana.address,
-      inputAmount: ether('1').toString(),
-      token0: banana.address,
-      token1: bitcoin.address,
-      path0: swapPath0,
-      path1: swapPath1,
-      liquidityPath: liquidityPath,
-      to: signers.alice.address,
-      deadline: '9999999999',
-    }
-    console.log(dexRouter.address, banana.address, bitcoin.address)
-    await zapContract.connect(signers.alice).zap(zapParams)
-
-    const balanceAfter = await lpContract.balanceOf(signers.alice.address)
-    expect(Number(balanceAfter)).gt(Number(balanceBefore))
-  })
-
-  it('Should be able to do a token -> different token-token zap', async () => {
-    const { zapContract, dexFactory, dexRouter, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
-      await loadFixture(deployDexAndZap)
-
-    const lp = await dexFactory.getPair(ethereum.address, bitcoin.address)
-    const lpContract = await ethers.getContractAt('IApePair', lp)
-    const balanceBefore = await lpContract.balanceOf(signers.alice.address)
-
-    const swapPath0 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [banana.address, ethereum.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const swapPath1 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [banana.address, bitcoin.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const liquidityPath = {
-      lpRouter: dexRouter.address,
-      lpType: LPType.V2,
-      minAmountLP0: 0,
-      minAmountLP1: 0,
-      uniV3PoolLPFee: 0,
-      arrakisFactory: NULL_ADDRESS,
-    }
-
-    const zapParams = {
-      inputToken: banana.address,
-      inputAmount: ether('1').toString(),
-      token0: ethereum.address,
-      token1: bitcoin.address,
-      path0: swapPath0,
-      path1: swapPath1,
-      liquidityPath: liquidityPath,
-      to: signers.alice.address,
-      deadline: '9999999999',
-    }
-
-    await zapContract.connect(signers.alice).zap(zapParams)
-
-    const balanceAfter = await lpContract.balanceOf(signers.alice.address)
-    expect(Number(balanceAfter)).gt(Number(balanceBefore))
-  })
-
-  it('Should be able to do a token -> native-token zap', async () => {
-    const { zapContract, dexFactory, dexRouter, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
-      await loadFixture(deployDexAndZap)
-
-    const lp = await dexFactory.getPair(banana.address, mockWBNB.address)
-    const lpContract = await ethers.getContractAt('IApePair', lp)
-    const balanceBefore = await lpContract.balanceOf(signers.alice.address)
-
-    const swapPath0 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const swapPath1 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [banana.address, mockWBNB.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const liquidityPath = {
-      lpRouter: dexRouter.address,
-      lpType: LPType.V2,
-      minAmountLP0: 0,
-      minAmountLP1: 0,
-      uniV3PoolLPFee: 0,
-      arrakisFactory: NULL_ADDRESS,
-    }
-
-    const zapParams = {
-      inputToken: banana.address,
-      inputAmount: ether('1').toString(),
-      token0: banana.address,
-      token1: mockWBNB.address,
-      path0: swapPath0,
-      path1: swapPath1,
-      liquidityPath: liquidityPath,
-      to: signers.alice.address,
-      deadline: '9999999999',
-    }
-
-    await zapContract.connect(signers.alice).zap(zapParams)
-
-    const balanceAfter = await lpContract.balanceOf(signers.alice.address)
-    expect(Number(balanceAfter)).gt(Number(balanceBefore))
-  })
-
-  it('Should be able to do a wrapped -> token-token zap', async () => {
-    const { zapContract, dexFactory, dexRouter, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
-      await loadFixture(deployDexAndZap)
-
-    const lp = await dexFactory.getPair(ethereum.address, bitcoin.address)
-    const lpContract = await ethers.getContractAt('IApePair', lp)
-    const balanceBefore = await lpContract.balanceOf(signers.alice.address)
-
-    await mockWBNB.connect(signers.alice).deposit({ value: ether('1') })
-    await mockWBNB.connect(signers.alice).approve(zapContract.address, ether('1000'))
-
-    const swapPath0 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [mockWBNB.address, ethereum.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const swapPath1 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [mockWBNB.address, bitcoin.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const liquidityPath = {
-      lpRouter: dexRouter.address,
-      lpType: LPType.V2,
-      minAmountLP0: 0,
-      minAmountLP1: 0,
-      uniV3PoolLPFee: 0,
-      arrakisFactory: NULL_ADDRESS,
-    }
-
-    const zapParams = {
-      inputToken: mockWBNB.address,
-      inputAmount: ether('1').toString(),
-      token0: ethereum.address,
-      token1: bitcoin.address,
-      path0: swapPath0,
-      path1: swapPath1,
-      liquidityPath: liquidityPath,
-      to: signers.alice.address,
-      deadline: '9999999999',
-    }
-
-    await zapContract.connect(signers.alice).zap(zapParams)
-
-    const balanceAfter = await lpContract.balanceOf(signers.alice.address)
-    expect(Number(balanceAfter)).gt(Number(balanceBefore))
-  })
-
-  it('Should be able to do a wrapped -> native-token zap', async () => {
-    const { zapContract, dexFactory, dexRouter, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
-      await loadFixture(deployDexAndZap)
-
-    const lp = await dexFactory.getPair(mockWBNB.address, bitcoin.address)
-    const lpContract = await ethers.getContractAt('IApePair', lp)
-    const balanceBefore = await lpContract.balanceOf(signers.alice.address)
-
-    await mockWBNB.connect(signers.alice).deposit({ value: ether('1') })
-    await mockWBNB.connect(signers.alice).approve(zapContract.address, ether('1000'))
-
-    const swapPath0 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const swapPath1 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [mockWBNB.address, bitcoin.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const liquidityPath = {
-      lpRouter: dexRouter.address,
-      lpType: LPType.V2,
-      minAmountLP0: 0,
-      minAmountLP1: 0,
-      uniV3PoolLPFee: 0,
-      arrakisFactory: NULL_ADDRESS,
-    }
-
-    const zapParams = {
-      inputToken: mockWBNB.address,
-      inputAmount: ether('1').toString(),
-      token0: mockWBNB.address,
-      token1: bitcoin.address,
-      path0: swapPath0,
-      path1: swapPath1,
-      liquidityPath: liquidityPath,
-      to: signers.alice.address,
-      deadline: '9999999999',
-    }
-
-    await zapContract.connect(signers.alice).zap(zapParams)
-
-    const balanceAfter = await lpContract.balanceOf(signers.alice.address)
-    expect(Number(balanceAfter)).gt(Number(balanceBefore))
-  })
-
-  it('Should be able to do a native -> token-token zap', async () => {
-    const { zapContract, dexFactory, dexRouter, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
-      await loadFixture(deployDexAndZap)
-
-    const lp = await dexFactory.getPair(banana.address, bitcoin.address)
-    const lpContract = await ethers.getContractAt('IApePair', lp)
-    const balanceBefore = await lpContract.balanceOf(signers.alice.address)
-
-    const swapPath0 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [mockWBNB.address, banana.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const swapPath1 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [mockWBNB.address, bitcoin.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const liquidityPath = {
-      lpRouter: dexRouter.address,
-      lpType: LPType.V2,
-      minAmountLP0: 0,
-      minAmountLP1: 0,
-      uniV3PoolLPFee: 0,
-      arrakisFactory: NULL_ADDRESS,
-    }
-
-    const zapParams = {
-      token0: banana.address,
-      token1: bitcoin.address,
-      path0: swapPath0,
-      path1: swapPath1,
-      liquidityPath: liquidityPath,
-      to: signers.alice.address,
-      deadline: '9999999999',
-    }
-
-    await zapContract.connect(signers.alice).zapNative(zapParams, { value: ether('1') })
-
-    const balanceAfter = await lpContract.balanceOf(signers.alice.address)
-    expect(Number(balanceAfter)).gt(Number(balanceBefore))
-  })
-
-  it('Should be able to do a native -> native-token zap', async () => {
-    const { zapContract, dexFactory, dexRouter, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
-      await loadFixture(deployDexAndZap)
-
-    const lp = await dexFactory.getPair(banana.address, mockWBNB.address)
-    const lpContract = await ethers.getContractAt('IApePair', lp)
-    const balanceBefore = await lpContract.balanceOf(signers.alice.address)
-
-    const swapPath0 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [mockWBNB.address, banana.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const swapPath1 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const liquidityPath = {
-      lpRouter: dexRouter.address,
-      lpType: LPType.V2,
-      minAmountLP0: 0,
-      minAmountLP1: 0,
-      uniV3PoolLPFee: 0,
-      arrakisFactory: NULL_ADDRESS,
-    }
-
-    const zapParams = {
-      token0: banana.address,
-      token1: mockWBNB.address,
-      path0: swapPath0,
-      path1: swapPath1,
-      liquidityPath: liquidityPath,
-      to: signers.alice.address,
-      deadline: '9999999999',
-    }
-
-    await zapContract.connect(signers.alice).zapNative(zapParams, { value: ether('1') })
-
-    const balanceAfter = await lpContract.balanceOf(signers.alice.address)
-    expect(Number(balanceAfter)).gt(Number(balanceBefore))
-  })
-
-  it('Should receive dust back', async () => {
-    const { zapContract, dexFactory, dexRouter, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
-      await loadFixture(deployDexAndZap)
-
-    const tokenContract0 = await ethers.getContractAt('IERC20', banana.address)
-    const tokenContract1 = await ethers.getContractAt('IERC20', bitcoin.address)
-
-    const balanceBefore = await tokenContract0.balanceOf(signers.alice.address)
-
-    const swapPath0 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const swapPath1 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [banana.address, bitcoin.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const liquidityPath = {
-      lpRouter: dexRouter.address,
-      lpType: LPType.V2,
-      minAmountLP0: 0,
-      minAmountLP1: 0,
-      uniV3PoolLPFee: 0,
-      arrakisFactory: NULL_ADDRESS,
-    }
-
-    const zapParams = {
-      inputToken: banana.address,
-      inputAmount: ether('1').toString(),
-      token0: banana.address,
-      token1: bitcoin.address,
-      path0: swapPath0,
-      path1: swapPath1,
-      liquidityPath: liquidityPath,
-      to: signers.alice.address,
-      deadline: '9999999999',
-    }
-
-    await zapContract.connect(signers.alice).zap(zapParams)
-
-    const balanceAfter = await tokenContract0.balanceOf(signers.alice.address)
-    expect(Number(balanceAfter)).gt(Number(balanceBefore) - Number(ether('1')))
-
-    const token0Balance = await tokenContract0.balanceOf(zapContract.address)
-    const token1Balance = await tokenContract1.balanceOf(zapContract.address)
-    expect(Number(token0Balance)).equal(0)
-    expect(Number(token1Balance)).equal(0)
-  })
-
-  it('Should revert for non existing pair', async () => {
-    const { zapContract, dexFactory, dexRouter, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
-      await loadFixture(deployDexAndZap)
-
-    const swapPath0 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [banana.address, bitcoin.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const swapPath1 = {
-      swapRouter: dexRouter.address,
-      swapType: SwapType.V2,
-      path: [banana.address, busd.address],
-      minAmountSwap: 0,
-      uniV3PoolFees: [],
-    }
-
-    const liquidityPath = {
-      lpRouter: dexRouter.address,
-      lpType: LPType.V2,
-      minAmountLP0: 0,
-      minAmountLP1: 0,
-      uniV3PoolLPFee: 0,
-      arrakisFactory: NULL_ADDRESS,
-    }
-
-    const zapParams = {
-      inputToken: banana.address,
-      inputAmount: ether('1').toString(),
-      token0: bitcoin.address,
-      token1: busd.address,
-      path0: swapPath0,
-      path1: swapPath1,
-      liquidityPath: liquidityPath,
-      to: signers.alice.address,
-      deadline: '9999999999',
-    }
-
-    await expect(zapContract.connect(signers.alice).zap(zapParams)).to.be.revertedWith(
-      "ApeSwapZap: Pair doesn't exist"
-    )
+  describe('ApeV2 zaps', function () {
+    it('Should be able to do a token -> token-token zap', async () => {
+      const { zapContract, DEXV2, DEXV3, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
+        await loadFixture(deployDexAndZap)
+
+      const lp = await DEXV2.dexFactory.getPair(banana.address, bitcoin.address)
+      const lpContract = await ethers.getContractAt('IApePair', lp)
+      const balanceBefore = await lpContract.balanceOf(signers.alice.address)
+
+      const swapPath0 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const swapPath1 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [banana.address, bitcoin.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const liquidityPath = {
+        lpRouter: DEXV2.dexRouter.address,
+        lpType: LPType.V2,
+        minAmountLP0: 0,
+        minAmountLP1: 0,
+        uniV3PoolLPFee: 0,
+        arrakisFactory: NULL_ADDRESS,
+      }
+
+      const zapParams = {
+        inputToken: banana.address,
+        inputAmount: ether('1').toString(),
+        token0: banana.address,
+        token1: bitcoin.address,
+        path0: swapPath0,
+        path1: swapPath1,
+        liquidityPath: liquidityPath,
+        to: signers.alice.address,
+        deadline: '9999999999',
+      }
+      console.log(DEXV2.dexRouter.address, banana.address, bitcoin.address)
+      await zapContract.connect(signers.alice).zap(zapParams)
+
+      const balanceAfter = await lpContract.balanceOf(signers.alice.address)
+      expect(Number(balanceAfter)).gt(Number(balanceBefore))
+    })
+
+    it('Should be able to do a token -> different token-token zap', async () => {
+      const { zapContract, DEXV2, DEXV3, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
+        await loadFixture(deployDexAndZap)
+
+      const lp = await DEXV2.dexFactory.getPair(ethereum.address, bitcoin.address)
+      const lpContract = await ethers.getContractAt('IApePair', lp)
+      const balanceBefore = await lpContract.balanceOf(signers.alice.address)
+
+      const swapPath0 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [banana.address, ethereum.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const swapPath1 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [banana.address, bitcoin.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const liquidityPath = {
+        lpRouter: DEXV2.dexRouter.address,
+        lpType: LPType.V2,
+        minAmountLP0: 0,
+        minAmountLP1: 0,
+        uniV3PoolLPFee: 0,
+        arrakisFactory: NULL_ADDRESS,
+      }
+
+      const zapParams = {
+        inputToken: banana.address,
+        inputAmount: ether('1').toString(),
+        token0: ethereum.address,
+        token1: bitcoin.address,
+        path0: swapPath0,
+        path1: swapPath1,
+        liquidityPath: liquidityPath,
+        to: signers.alice.address,
+        deadline: '9999999999',
+      }
+
+      await zapContract.connect(signers.alice).zap(zapParams)
+
+      const balanceAfter = await lpContract.balanceOf(signers.alice.address)
+      expect(Number(balanceAfter)).gt(Number(balanceBefore))
+    })
+
+    it('Should be able to do a token -> native-token zap', async () => {
+      const { zapContract, DEXV2, DEXV3, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
+        await loadFixture(deployDexAndZap)
+
+      const lp = await DEXV2.dexFactory.getPair(banana.address, mockWBNB.address)
+      const lpContract = await ethers.getContractAt('IApePair', lp)
+      const balanceBefore = await lpContract.balanceOf(signers.alice.address)
+
+      const swapPath0 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const swapPath1 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [banana.address, mockWBNB.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const liquidityPath = {
+        lpRouter: DEXV2.dexRouter.address,
+        lpType: LPType.V2,
+        minAmountLP0: 0,
+        minAmountLP1: 0,
+        uniV3PoolLPFee: 0,
+        arrakisFactory: NULL_ADDRESS,
+      }
+
+      const zapParams = {
+        inputToken: banana.address,
+        inputAmount: ether('1').toString(),
+        token0: banana.address,
+        token1: mockWBNB.address,
+        path0: swapPath0,
+        path1: swapPath1,
+        liquidityPath: liquidityPath,
+        to: signers.alice.address,
+        deadline: '9999999999',
+      }
+
+      await zapContract.connect(signers.alice).zap(zapParams)
+
+      const balanceAfter = await lpContract.balanceOf(signers.alice.address)
+      expect(Number(balanceAfter)).gt(Number(balanceBefore))
+    })
+
+    it('Should be able to do a wrapped -> token-token zap', async () => {
+      const { zapContract, DEXV2, DEXV3, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
+        await loadFixture(deployDexAndZap)
+
+      const lp = await DEXV2.dexFactory.getPair(ethereum.address, bitcoin.address)
+      const lpContract = await ethers.getContractAt('IApePair', lp)
+      const balanceBefore = await lpContract.balanceOf(signers.alice.address)
+
+      await mockWBNB.connect(signers.alice).deposit({ value: ether('1') })
+      await mockWBNB.connect(signers.alice).approve(zapContract.address, ether('1000'))
+
+      const swapPath0 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [mockWBNB.address, ethereum.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const swapPath1 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [mockWBNB.address, bitcoin.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const liquidityPath = {
+        lpRouter: DEXV2.dexRouter.address,
+        lpType: LPType.V2,
+        minAmountLP0: 0,
+        minAmountLP1: 0,
+        uniV3PoolLPFee: 0,
+        arrakisFactory: NULL_ADDRESS,
+      }
+
+      const zapParams = {
+        inputToken: mockWBNB.address,
+        inputAmount: ether('1').toString(),
+        token0: ethereum.address,
+        token1: bitcoin.address,
+        path0: swapPath0,
+        path1: swapPath1,
+        liquidityPath: liquidityPath,
+        to: signers.alice.address,
+        deadline: '9999999999',
+      }
+
+      await zapContract.connect(signers.alice).zap(zapParams)
+
+      const balanceAfter = await lpContract.balanceOf(signers.alice.address)
+      expect(Number(balanceAfter)).gt(Number(balanceBefore))
+    })
+
+    it('Should be able to do a wrapped -> native-token zap', async () => {
+      const { zapContract, DEXV2, DEXV3, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
+        await loadFixture(deployDexAndZap)
+
+      const lp = await DEXV2.dexFactory.getPair(mockWBNB.address, bitcoin.address)
+      const lpContract = await ethers.getContractAt('IApePair', lp)
+      const balanceBefore = await lpContract.balanceOf(signers.alice.address)
+
+      await mockWBNB.connect(signers.alice).deposit({ value: ether('1') })
+      await mockWBNB.connect(signers.alice).approve(zapContract.address, ether('1000'))
+
+      const swapPath0 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const swapPath1 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [mockWBNB.address, bitcoin.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const liquidityPath = {
+        lpRouter: DEXV2.dexRouter.address,
+        lpType: LPType.V2,
+        minAmountLP0: 0,
+        minAmountLP1: 0,
+        uniV3PoolLPFee: 0,
+        arrakisFactory: NULL_ADDRESS,
+      }
+
+      const zapParams = {
+        inputToken: mockWBNB.address,
+        inputAmount: ether('1').toString(),
+        token0: mockWBNB.address,
+        token1: bitcoin.address,
+        path0: swapPath0,
+        path1: swapPath1,
+        liquidityPath: liquidityPath,
+        to: signers.alice.address,
+        deadline: '9999999999',
+      }
+
+      await zapContract.connect(signers.alice).zap(zapParams)
+
+      const balanceAfter = await lpContract.balanceOf(signers.alice.address)
+      expect(Number(balanceAfter)).gt(Number(balanceBefore))
+    })
+
+    it('Should be able to do a native -> token-token zap', async () => {
+      const { zapContract, DEXV2, DEXV3, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
+        await loadFixture(deployDexAndZap)
+
+      const lp = await DEXV2.dexFactory.getPair(banana.address, bitcoin.address)
+      const lpContract = await ethers.getContractAt('IApePair', lp)
+      const balanceBefore = await lpContract.balanceOf(signers.alice.address)
+
+      const swapPath0 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [mockWBNB.address, banana.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const swapPath1 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [mockWBNB.address, bitcoin.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const liquidityPath = {
+        lpRouter: DEXV2.dexRouter.address,
+        lpType: LPType.V2,
+        minAmountLP0: 0,
+        minAmountLP1: 0,
+        uniV3PoolLPFee: 0,
+        arrakisFactory: NULL_ADDRESS,
+      }
+
+      const zapParams = {
+        token0: banana.address,
+        token1: bitcoin.address,
+        path0: swapPath0,
+        path1: swapPath1,
+        liquidityPath: liquidityPath,
+        to: signers.alice.address,
+        deadline: '9999999999',
+      }
+
+      await zapContract.connect(signers.alice).zapNative(zapParams, { value: ether('1') })
+
+      const balanceAfter = await lpContract.balanceOf(signers.alice.address)
+      expect(Number(balanceAfter)).gt(Number(balanceBefore))
+    })
+
+    it('Should be able to do a native -> native-token zap', async () => {
+      const { zapContract, DEXV2, DEXV3, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
+        await loadFixture(deployDexAndZap)
+
+      const lp = await DEXV2.dexFactory.getPair(banana.address, mockWBNB.address)
+      const lpContract = await ethers.getContractAt('IApePair', lp)
+      const balanceBefore = await lpContract.balanceOf(signers.alice.address)
+
+      const swapPath0 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [mockWBNB.address, banana.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const swapPath1 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const liquidityPath = {
+        lpRouter: DEXV2.dexRouter.address,
+        lpType: LPType.V2,
+        minAmountLP0: 0,
+        minAmountLP1: 0,
+        uniV3PoolLPFee: 0,
+        arrakisFactory: NULL_ADDRESS,
+      }
+
+      const zapParams = {
+        token0: banana.address,
+        token1: mockWBNB.address,
+        path0: swapPath0,
+        path1: swapPath1,
+        liquidityPath: liquidityPath,
+        to: signers.alice.address,
+        deadline: '9999999999',
+      }
+
+      await zapContract.connect(signers.alice).zapNative(zapParams, { value: ether('1') })
+
+      const balanceAfter = await lpContract.balanceOf(signers.alice.address)
+      expect(Number(balanceAfter)).gt(Number(balanceBefore))
+    })
+
+    it('Should receive dust back', async () => {
+      const { zapContract, DEXV2, DEXV3, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
+        await loadFixture(deployDexAndZap)
+
+      const tokenContract0 = await ethers.getContractAt('IERC20', banana.address)
+      const tokenContract1 = await ethers.getContractAt('IERC20', bitcoin.address)
+
+      const balanceBefore = await tokenContract0.balanceOf(signers.alice.address)
+
+      const swapPath0 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const swapPath1 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [banana.address, bitcoin.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const liquidityPath = {
+        lpRouter: DEXV2.dexRouter.address,
+        lpType: LPType.V2,
+        minAmountLP0: 0,
+        minAmountLP1: 0,
+        uniV3PoolLPFee: 0,
+        arrakisFactory: NULL_ADDRESS,
+      }
+
+      const zapParams = {
+        inputToken: banana.address,
+        inputAmount: ether('1').toString(),
+        token0: banana.address,
+        token1: bitcoin.address,
+        path0: swapPath0,
+        path1: swapPath1,
+        liquidityPath: liquidityPath,
+        to: signers.alice.address,
+        deadline: '9999999999',
+      }
+
+      await zapContract.connect(signers.alice).zap(zapParams)
+
+      const balanceAfter = await tokenContract0.balanceOf(signers.alice.address)
+      expect(Number(balanceAfter)).gt(Number(balanceBefore) - Number(ether('1')))
+
+      const token0Balance = await tokenContract0.balanceOf(zapContract.address)
+      const token1Balance = await tokenContract1.balanceOf(zapContract.address)
+      expect(Number(token0Balance)).equal(0)
+      expect(Number(token1Balance)).equal(0)
+    })
+
+    it('Should revert for non existing pair', async () => {
+      const { zapContract, DEXV2, DEXV3, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, factories } =
+        await loadFixture(deployDexAndZap)
+
+      const swapPath0 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [banana.address, bitcoin.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const swapPath1 = {
+        swapRouter: DEXV2.dexRouter.address,
+        swapType: SwapType.V2,
+        path: [banana.address, busd.address],
+        minAmountSwap: 0,
+        uniV3PoolFees: [],
+      }
+
+      const liquidityPath = {
+        lpRouter: DEXV2.dexRouter.address,
+        lpType: LPType.V2,
+        minAmountLP0: 0,
+        minAmountLP1: 0,
+        uniV3PoolLPFee: 0,
+        arrakisFactory: NULL_ADDRESS,
+      }
+
+      const zapParams = {
+        inputToken: banana.address,
+        inputAmount: ether('1').toString(),
+        token0: bitcoin.address,
+        token1: busd.address,
+        path0: swapPath0,
+        path1: swapPath1,
+        liquidityPath: liquidityPath,
+        to: signers.alice.address,
+        deadline: '9999999999',
+      }
+
+      await expect(zapContract.connect(signers.alice).zap(zapParams)).to.be.revertedWith(
+        "ApeSwapZap: Pair doesn't exist"
+      )
+    })
   })
 })
