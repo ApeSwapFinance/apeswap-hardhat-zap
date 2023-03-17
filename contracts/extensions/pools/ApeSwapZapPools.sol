@@ -76,9 +76,7 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
         uint256 deadline,
         IBEP20RewardApeV5 pool
     ) external payable nonReentrant {
-        uint256 inputAmount = msg.value;
-        IERC20 inputToken = IERC20(WNATIVE);
-        IWETH(WNATIVE).deposit{value: inputAmount}();
+        (uint256 inputAmount, IERC20 inputToken) = _wrapNative();
 
         __zapInternalSingleAssetPool(inputToken, inputAmount, path, minAmountsSwap, deadline, pool);
         emit ZapSingleAssetPoolNative(inputAmount, pool);
@@ -87,7 +85,7 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
     /// @notice Zap token into banana/gnana pool
     /// @param inputToken Input token to zap
     /// @param inputAmount Amount of input tokens to zap
-    /// @param underlyingTokens Tokens of LP to zap to
+    /// @param lpTokens Tokens of LP to zap to
     /// @param path0 Path from input token to LP token0
     /// @param path1 Path from input token to LP token1
     /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
@@ -97,7 +95,7 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
     function zapLPPool(
         IERC20 inputToken,
         uint256 inputAmount,
-        address[] memory underlyingTokens, //[token0, token1]
+        address[] memory lpTokens, //[tokenA, tokenB]
         address[] calldata path0,
         address[] calldata path1,
         uint256[] memory minAmountsSwap, //[A, B]
@@ -105,17 +103,12 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
         uint256 deadline,
         IBEP20RewardApeV5 pool
     ) external nonReentrant {
-        IApePair pair = IApePair(address(pool.STAKE_TOKEN()));
-        require(
-            (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
-                (underlyingTokens[1] == pair.token0() && underlyingTokens[0] == pair.token1()),
-            "ApeSwapZap: Wrong LP pair for Pool"
-        );
+        IApePair pair = _validateLpPoolZap(lpTokens, pool);
 
         _zapInternal(
             inputToken,
             inputAmount,
-            underlyingTokens,
+            lpTokens,
             path0,
             path1,
             minAmountsSwap,
@@ -132,7 +125,7 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
     }
 
     /// @notice Zap native into banana/gnana pool
-    /// @param underlyingTokens Tokens of LP to zap to
+    /// @param lpTokens Tokens of LP to zap to
     /// @param path0 Path from input token to LP token0
     /// @param path1 Path from input token to LP token1
     /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
@@ -140,7 +133,7 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
     /// @param deadline Unix timestamp after which the transaction will revert
     /// @param pool Pool address
     function zapLPPoolNative(
-        address[] memory underlyingTokens, //[token0, token1]
+        address[] memory lpTokens, //[tokenA, tokenB]
         address[] calldata path0,
         address[] calldata path1,
         uint256[] memory minAmountsSwap, //[A, B]
@@ -148,20 +141,27 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
         uint256 deadline,
         IBEP20RewardApeV5 pool
     ) external payable nonReentrant {
-        IApePair pair = IApePair(address(pool.STAKE_TOKEN()));
-        require(
-            (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
-                (underlyingTokens[1] == pair.token0() && underlyingTokens[0] == pair.token1()),
-            "ApeSwapZap: Wrong LP pair for Pool"
-        );
+        IApePair pair = _validateLpPoolZap(lpTokens, pool);
 
-        _zapNativeInternal(underlyingTokens, path0, path1, minAmountsSwap, minAmountsLP, address(this), deadline);
+        _zapNativeInternal(lpTokens, path0, path1, minAmountsSwap, minAmountsLP, address(this), deadline);
 
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(pool), balance);
         pool.depositTo(balance, msg.sender);
         pair.approve(address(pool), 0);
         emit ZapLPPoolNative(msg.value, pool);
+    }
+
+    function _validateLpPoolZap(
+        address[] memory lpTokens,
+        IBEP20RewardApeV5 pool
+    ) private view returns (IApePair pair) {
+        pair = IApePair(address(pool.STAKE_TOKEN()));
+        require(
+            (lpTokens[0] == pair.token0() && lpTokens[1] == pair.token1()) ||
+                (lpTokens[1] == pair.token0() && lpTokens[0] == pair.token1()),
+            "ApeSwapZapPools: Wrong LP pair for Pool"
+        );
     }
 
     /// @notice Zap token into banana/gnana pool
@@ -181,7 +181,7 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
     ) internal {
         IERC20 stakeToken = pool.STAKE_TOKEN();
 
-        uint256 amount = inputAmount;
+        uint256 depositAmount = inputAmount;
         IERC20 neededToken = stakeToken == GNANA ? BANANA : stakeToken;
 
         if (inputToken != neededToken) {
@@ -189,25 +189,18 @@ abstract contract ApeSwapZapPools is ApeSwapZap {
             require(path[path.length - 1] == address(neededToken), "ApeSwapZap: wrong path path[-1]");
 
             inputToken.approve(address(router), inputAmount);
-            uint256[] memory amounts = router.swapExactTokensForTokens(
-                inputAmount,
-                minAmountsSwap,
-                path,
-                address(this),
-                deadline
-            );
-            amount = amounts[amounts.length - 1];
+            depositAmount = _routerSwap(inputAmount, minAmountsSwap, path, deadline);
         }
 
         if (stakeToken == GNANA) {
             uint256 beforeAmount = _getBalance(stakeToken);
-            IERC20(BANANA).approve(address(GNANA_TREASURY), amount);
-            GNANA_TREASURY.buy(amount);
-            amount = _getBalance(stakeToken) - beforeAmount;
+            IERC20(BANANA).approve(address(GNANA_TREASURY), depositAmount);
+            GNANA_TREASURY.buy(depositAmount);
+            depositAmount = _getBalance(stakeToken) - beforeAmount;
         }
 
-        stakeToken.approve(address(pool), amount);
-        pool.depositTo(amount, msg.sender);
+        stakeToken.approve(address(pool), depositAmount);
+        pool.depositTo(depositAmount, msg.sender);
         stakeToken.approve(address(pool), 0);
     }
 }
