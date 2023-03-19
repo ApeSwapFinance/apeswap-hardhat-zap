@@ -3,14 +3,18 @@ import { dex, utils } from '@ape.swap/hardhat-test-helpers'
 import { mine, time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import { ethers } from 'hardhat'
-import { deployDexAndZap } from '../utils/deployDexAndZap'
-
+import { deployDexAndZap } from '../fixtures/deployDexAndZap'
 const ether = utils.ether
+
+async function fixture() {
+  const dexAndZap = await deployDexAndZap(ethers)
+  return { ...dexAndZap }
+}
 
 describe('Zap LP Migrator', function () {
   it('Should zap competitive LPs to Ape LPs', async () => {
     const { zapContract, dexFactory, dexRouter, mockWBNB, banana, bitcoin, ethereum, busd, gnana, signers, otherDex } =
-      await loadFixture(deployDexAndZap)
+      await loadFixture(fixture)
 
     await banana.approve(otherDex.dexRouter.address, ether('3000'))
     await bitcoin.approve(otherDex.dexRouter.address, ether('3000'))
