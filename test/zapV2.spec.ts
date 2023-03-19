@@ -3,6 +3,7 @@ import { dex, dexV3, dexV2AndV3, utils } from '@ape.swap/hardhat-test-helpers'
 import { mine, time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import { ethers } from 'hardhat'
+import { ADDRESS_ZERO } from './utils/constants'
 
 const ether = utils.ether
 
@@ -17,8 +18,6 @@ describe('ZapV2', function () {
     V3: 1,
     Arrakis: 2,
   }
-
-  const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 
   async function deployDexAndZap() {
     const ApeSwapZap__factory = await ethers.getContractFactory('ApeSwapZapFullV4')
@@ -146,7 +145,7 @@ describe('ZapV2', function () {
         minAmountLP0: 0,
         minAmountLP1: 0,
         uniV3PoolLPFee: 0,
-        arrakisFactory: NULL_ADDRESS,
+        arrakisFactory: ADDRESS_ZERO,
       }
 
       const zapParams = {
@@ -197,7 +196,7 @@ describe('ZapV2', function () {
         minAmountLP0: 0,
         minAmountLP1: 0,
         uniV3PoolLPFee: 0,
-        arrakisFactory: NULL_ADDRESS,
+        arrakisFactory: ADDRESS_ZERO,
       }
 
       const zapParams = {
@@ -248,7 +247,7 @@ describe('ZapV2', function () {
         minAmountLP0: 0,
         minAmountLP1: 0,
         uniV3PoolLPFee: 0,
-        arrakisFactory: NULL_ADDRESS,
+        arrakisFactory: ADDRESS_ZERO,
       }
 
       const zapParams = {
@@ -302,7 +301,7 @@ describe('ZapV2', function () {
         minAmountLP0: 0,
         minAmountLP1: 0,
         uniV3PoolLPFee: 0,
-        arrakisFactory: NULL_ADDRESS,
+        arrakisFactory: ADDRESS_ZERO,
       }
 
       const zapParams = {
@@ -356,7 +355,7 @@ describe('ZapV2', function () {
         minAmountLP0: 0,
         minAmountLP1: 0,
         uniV3PoolLPFee: 0,
-        arrakisFactory: NULL_ADDRESS,
+        arrakisFactory: ADDRESS_ZERO,
       }
 
       const zapParams = {
@@ -407,7 +406,7 @@ describe('ZapV2', function () {
         minAmountLP0: 0,
         minAmountLP1: 0,
         uniV3PoolLPFee: 0,
-        arrakisFactory: NULL_ADDRESS,
+        arrakisFactory: ADDRESS_ZERO,
       }
 
       const zapParams = {
@@ -456,7 +455,7 @@ describe('ZapV2', function () {
         minAmountLP0: 0,
         minAmountLP1: 0,
         uniV3PoolLPFee: 0,
-        arrakisFactory: NULL_ADDRESS,
+        arrakisFactory: ADDRESS_ZERO,
       }
 
       const zapParams = {
@@ -506,7 +505,7 @@ describe('ZapV2', function () {
         minAmountLP0: 0,
         minAmountLP1: 0,
         uniV3PoolLPFee: 0,
-        arrakisFactory: NULL_ADDRESS,
+        arrakisFactory: ADDRESS_ZERO,
       }
 
       const zapParams = {
@@ -558,7 +557,7 @@ describe('ZapV2', function () {
         minAmountLP0: 0,
         minAmountLP1: 0,
         uniV3PoolLPFee: 0,
-        arrakisFactory: NULL_ADDRESS,
+        arrakisFactory: ADDRESS_ZERO,
       }
 
       const zapParams = {
