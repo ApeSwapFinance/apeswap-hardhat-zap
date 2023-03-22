@@ -3,12 +3,12 @@ import { expect } from 'chai'
 import { dex, utils, farmV2, ERC20Mock__factory } from '@ape.swap/hardhat-test-helpers'
 import { mine, time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import '@nomicfoundation/hardhat-chai-matchers'
-import { deployBill, deployDexAndZap } from '../fixtures'
+import { deployBill, deployDexAndZapFull } from '../fixtures'
 
 const ether = utils.ether
 
 async function fixture() {
-  const dexAndZap = await deployDexAndZap(ethers)
+  const dexAndZap = await deployDexAndZapFull(ethers)
   return { ...dexAndZap }
 }
 

@@ -3,7 +3,7 @@ import { dex, utils } from '@ape.swap/hardhat-test-helpers'
 import { mine, time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import { ethers } from 'hardhat'
-import { deployDexAndZap } from '../fixtures'
+import { deployDexAndZapFull as deployDexAndZap } from '../fixtures'
 const ether = utils.ether
 
 async function fixture() {
