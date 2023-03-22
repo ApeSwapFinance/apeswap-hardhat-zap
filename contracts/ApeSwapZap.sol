@@ -248,15 +248,19 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
 
         vars.amount0 = inputAmount / 2;
         if (lpTokens[0] != address(inputToken)) {
+            uint256 path0Length = path0.length;
+            require(path0Length > 0, "ApeSwapZap: path0 is required for this operation");
             require(path0[0] == address(inputToken), "ApeSwapZap: wrong path path0[0]");
-            require(path0[path0.length - 1] == lpTokens[0], "ApeSwapZap: wrong path path0[-1]");
+            require(path0[path0Length - 1] == lpTokens[0], "ApeSwapZap: wrong path path0[-1]");
             vars.amount0 = _routerSwap(vars.amount0, minAmountsSwap[0], path0, deadline);
         }
 
         vars.amount1 = inputAmount / 2;
         if (lpTokens[1] != address(inputToken)) {
+            uint256 path1Length = path1.length;
+            require(path1Length > 0, "ApeSwapZap: path0 is required for this operation");
             require(path1[0] == address(inputToken), "ApeSwapZap: wrong path path1[0]");
-            require(path1[path1.length - 1] == lpTokens[1], "ApeSwapZap: wrong path path1[-1]");
+            require(path1[path1Length - 1] == lpTokens[1], "ApeSwapZap: wrong path path1[-1]");
             vars.amount1 = _routerSwap(vars.amount1, minAmountsSwap[1], path1, deadline);
         }
 
