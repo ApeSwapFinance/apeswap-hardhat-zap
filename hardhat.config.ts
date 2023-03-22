@@ -231,8 +231,7 @@ const config: HardhatUserConfig = {
   docgen: {
     path: './docs',
     clear: true,
-    // TODO: Enable for each compile (disabled for template to avoid unnecessary generation)
-    runOnCompile: false,
+    runOnCompile: true,
   },
   typechain: {
     // outDir: 'src/types', // defaults to './typechain-types/'
