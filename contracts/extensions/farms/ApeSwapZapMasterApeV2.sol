@@ -36,17 +36,20 @@ abstract contract ApeSwapZapMasterApeV2 is ApeSwapZap {
         uint256 pid
     ) external nonReentrant {
         IApePair pair = _validateMasterApeV2Zap(lpTokens, masterApeV2, pid);
-
-        _zapInternal(
-            inputToken,
-            inputAmount,
-            lpTokens,
-            path0,
-            path1,
-            minAmountsSwap,
-            minAmountsLP,
-            address(this),
-            deadline
+        inputAmount = _transferIn(inputToken, inputAmount);
+        _zap(
+            ZapParams({
+                inputToken: inputToken,
+                inputAmount: inputAmount,
+                lpTokens: lpTokens,
+                path0: path0,
+                path1: path1,
+                minAmountsSwap: minAmountsSwap,
+                minAmountsLP: minAmountsLP,
+                to: address(this),
+                deadline: deadline
+            }),
+            false
         );
 
         uint256 balance = pair.balanceOf(address(this));
@@ -75,16 +78,31 @@ abstract contract ApeSwapZapMasterApeV2 is ApeSwapZap {
         IMasterApeV2 masterApeV2,
         uint256 pid
     ) external payable nonReentrant {
+        (IERC20 weth, uint256 inputAmount) = _wrapNative();
+        _zap(
+            ZapParams({
+                inputToken: weth,
+                inputAmount: inputAmount,
+                lpTokens: lpTokens,
+                path0: path0,
+                path1: path1,
+                minAmountsSwap: minAmountsSwap,
+                minAmountsLP: minAmountsLP,
+                to: address(this),
+                deadline: deadline
+            }),
+            true
+        );
+
         IApePair pair = _validateMasterApeV2Zap(lpTokens, masterApeV2, pid);
-
-        _zapNativeInternal(lpTokens, path0, path1, minAmountsSwap, minAmountsLP, address(this), deadline);
-
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(masterApeV2), balance);
         masterApeV2.depositTo(pid, balance, msg.sender);
         pair.approve(address(masterApeV2), 0);
         emit ZapMasterApeV2Native(msg.value, pid);
     }
+
+    /** PRIVATE FUNCTIONs **/
 
     function _validateMasterApeV2Zap(
         address[] memory lpTokens,
