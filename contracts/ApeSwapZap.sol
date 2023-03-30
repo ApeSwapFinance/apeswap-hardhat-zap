@@ -24,14 +24,14 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./IApeSwapZap.sol";
+import "./lib/IApeSwapZap.sol";
 import "./lib/IApeRouter02.sol";
 import "./lib/IApeFactory.sol";
 import "./lib/IApePair.sol";
-import "./lib/IWETH.sol";
+import "./utils/TransferHelper.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
+contract ApeSwapZap is TransferHelper, IApeSwapZap, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     struct BalanceLocalVars {
@@ -41,27 +41,28 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
 
     IApeRouter02 public immutable router;
     IApeFactory public immutable factory;
-    address public immutable WNATIVE;
 
-    event Zap(address inputToken, uint256 inputAmount, address[] lpTokens);
-    event ZapNative(uint256 inputAmount, address[] lpTokens);
+    event Zap(address inputToken, uint256 inputAmount, address[] lpTokens, uint256 amountA, uint256 amountB);
 
-    constructor(IApeRouter02 _router) {
+    constructor(IApeRouter02 _router) TransferHelper(_wEthHelper(_router)) {
         router = _router;
         factory = IApeFactory(router.factory());
-        WNATIVE = router.WETH();
+    }
+
+    function _wEthHelper(IApeRouter02 _router) private pure returns (IWETH) {
+        return IWETH(_router.WETH());
     }
 
     /// @dev The receive method is used as a fallback function in a contract
     /// and is called when ether is sent to a contract with no calldata.
     receive() external payable {
-        require(msg.sender == WNATIVE, "ApeSwapZap: Only receive ether from wrapped");
+        require(msg.sender == address(WNATIVE), "ApeSwapZap: Only receive ether from wrapped");
     }
 
     /// @notice Zap single token to LP
     /// @param inputToken Input token
     /// @param inputAmount Input amount
-    /// @param lpTokens Tokens of LP to zap to
+    /// @param lpTokens Tokens of LP to zap getMinAmounts
     /// @param path0 Path from input token to LP token0
     /// @param path1 Path from input token to LP token1
     /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
@@ -79,7 +80,21 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
         address to,
         uint256 deadline
     ) external override nonReentrant {
-        _zapInternal(inputToken, inputAmount, lpTokens, path0, path1, minAmountsSwap, minAmountsLP, to, deadline);
+        inputAmount = _transferIn(inputToken, inputAmount);
+        _zap(
+            ZapParams({
+                inputToken: inputToken,
+                inputAmount: inputAmount,
+                lpTokens: lpTokens,
+                path0: path0,
+                path1: path1,
+                minAmountsSwap: minAmountsSwap,
+                minAmountsLP: minAmountsLP,
+                to: to,
+                deadline: deadline
+            }),
+            false
+        );
     }
 
     /// @notice Zap native token to LP
@@ -99,7 +114,21 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
         address to,
         uint256 deadline
     ) external payable override nonReentrant {
-        _zapNativeInternal(lpTokens, path0, path1, minAmountsSwap, minAmountsLP, to, deadline);
+        (IERC20 weth, uint256 inputAmount) = _wrapNative();
+        _zap(
+            ZapParams({
+                inputToken: weth,
+                inputAmount: inputAmount,
+                lpTokens: lpTokens,
+                path0: path0,
+                path1: path1,
+                minAmountsSwap: minAmountsSwap,
+                minAmountsLP: minAmountsLP,
+                to: to,
+                deadline: deadline
+            }),
+            true
+        );
     }
 
     /// @notice get min amounts for swaps
@@ -141,69 +170,6 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
         minAmountsLP = [minAmountSwap0, amountB];
     }
 
-    function _zapInternal(
-        IERC20 inputToken,
-        uint256 inputAmount,
-        address[] memory lpTokens, //[tokenA, tokenB]
-        address[] calldata path0,
-        address[] calldata path1,
-        uint256[] memory minAmountsSwap, //[A, B]
-        uint256[] memory minAmountsLP, //[amountAMin, amountBMin]
-        address to,
-        uint256 deadline
-    ) internal {
-        uint256 balanceBefore = _getBalance(inputToken);
-        inputToken.safeTransferFrom(msg.sender, address(this), inputAmount);
-        inputAmount = _getBalance(inputToken) - balanceBefore;
-
-        _zapPrivate(inputToken, inputAmount, lpTokens, path0, path1, minAmountsSwap, minAmountsLP, to, deadline, false);
-        emit Zap(address(inputToken), inputAmount, lpTokens);
-    }
-
-    function _zapNativeInternal(
-        address[] memory lpTokens, //[tokenA, tokenB]
-        address[] calldata path0,
-        address[] calldata path1,
-        uint256[] memory minAmountsSwap, //[A, B]
-        uint256[] memory minAmountsLP, //[amountAMin, amountBMin]
-        address to,
-        uint256 deadline
-    ) internal {
-        (uint256 inputAmount, IERC20 inputToken) = _wrapNative();
-
-        _zapPrivate(inputToken, inputAmount, lpTokens, path0, path1, minAmountsSwap, minAmountsLP, to, deadline, true);
-        emit ZapNative(inputAmount, lpTokens);
-    }
-
-    /// @notice Wrap the msg.value into the Wrapped Native token
-    /// @return amount Amount of native tokens wrapped
-    /// @return wNative The IERC20 representation of the wrapped asset
-    function _wrapNative() internal returns (uint256 amount, IERC20 wNative) {
-        wNative = IERC20(WNATIVE);
-        amount = msg.value;
-        IWETH(WNATIVE).deposit{value: amount}();
-    }
-
-    /// @notice Unwrap current balance of Wrapped Native tokens
-    /// @return amount Amount of native tokens unwrapped
-    function _unwrapNative() internal returns (uint256 amount) {
-        amount = IERC20(WNATIVE).balanceOf(address(this));
-        IWETH(WNATIVE).withdraw(amount);
-    }
-
-    function _transfer(address token, uint256 amount, bool native) internal {
-        if (amount == 0) return;
-        if (token == WNATIVE && native) {
-            IWETH(WNATIVE).withdraw(amount);
-            // 2600 COLD_ACCOUNT_ACCESS_COST plus 2300 transfer gas - 1
-            // Intended to support transfers to contracts, but not allow for further code execution
-            (bool success, ) = msg.sender.call{value: amount, gas: 4899}("");
-            require(success, "native transfer error");
-        } else {
-            IERC20(token).safeTransfer(msg.sender, amount);
-        }
-    }
-
     /// @notice Swap single token to single token
     /// @param amountIn Amount of input token to pass in
     /// @param amountOutMin Min amount of output token to accept
@@ -214,76 +180,85 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
         uint256 amountIn,
         uint256 amountOutMin,
         address[] memory path,
-        uint256 deadline
+        uint256 deadline,
+        bool needApproval
     ) internal returns (uint256 amountOut) {
+        if (needApproval) {
+            IERC20(path[0]).approve(address(router), amountIn);
+        }
         address outputToken = path[path.length - 1];
         uint256 balanceBefore = _getBalance(IERC20(outputToken));
         router.swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), deadline);
         amountOut = _getBalance(IERC20(outputToken)) - balanceBefore;
     }
 
-    function _getBalance(IERC20 token) internal view returns (uint256 balance) {
-        balance = token.balanceOf(address(this));
-    }
-
-    function _zapPrivate(
-        IERC20 inputToken,
-        uint256 inputAmount,
-        address[] memory lpTokens, //[tokenA, tokenB]
-        address[] calldata path0,
-        address[] calldata path1,
-        uint256[] memory minAmountsSwap, //[A, B]
-        uint256[] memory minAmountsLP, //[amountAMin, amountBMin]
-        address to,
-        uint256 deadline,
-        bool native
-    ) private {
-        require(to != address(0), "ApeSwapZap: Can't zap to null address");
-        require(lpTokens.length == 2, "ApeSwapZap: need exactly 2 tokens to form a LP");
-        require(factory.getPair(lpTokens[0], lpTokens[1]) != address(0), "ApeSwapZap: Pair doesn't exist");
+    /// @dev Zap single token input to UniV2 LP token
+    /// @param zapParams ZapParams struct
+    /// @param nativeOut Whether to unwrap native token when refunding sender
+    function _zap(ZapParams memory zapParams, bool nativeOut) internal {
+        require(zapParams.to != address(0), "ApeSwapZap: Can't zap to null address");
+        require(zapParams.lpTokens.length == 2, "ApeSwapZap: need exactly 2 tokens to form a LP");
+        require(
+            factory.getPair(zapParams.lpTokens[0], zapParams.lpTokens[1]) != address(0),
+            "ApeSwapZap: Pair doesn't exist"
+        );
 
         BalanceLocalVars memory vars;
 
-        inputToken.approve(address(router), inputAmount);
+        zapParams.inputToken.approve(address(router), zapParams.inputAmount);
 
-        vars.amount0 = inputAmount / 2;
-        if (lpTokens[0] != address(inputToken)) {
-            uint256 path0Length = path0.length;
+        vars.amount0 = zapParams.inputAmount / 2;
+        if (zapParams.lpTokens[0] != address(zapParams.inputToken)) {
+            uint256 path0Length = zapParams.path0.length;
             require(path0Length > 0, "ApeSwapZap: path0 is required for this operation");
-            require(path0[0] == address(inputToken), "ApeSwapZap: wrong path path0[0]");
-            require(path0[path0Length - 1] == lpTokens[0], "ApeSwapZap: wrong path path0[-1]");
-            vars.amount0 = _routerSwap(vars.amount0, minAmountsSwap[0], path0, deadline);
+            require(zapParams.path0[0] == address(zapParams.inputToken), "ApeSwapZap: wrong path path0[0]");
+            require(zapParams.path0[path0Length - 1] == zapParams.lpTokens[0], "ApeSwapZap: wrong path path0[-1]");
+            vars.amount0 = _routerSwap(
+                vars.amount0,
+                zapParams.minAmountsSwap[0],
+                zapParams.path0,
+                zapParams.deadline,
+                false
+            );
         }
 
-        vars.amount1 = inputAmount / 2;
-        if (lpTokens[1] != address(inputToken)) {
-            uint256 path1Length = path1.length;
+        vars.amount1 = zapParams.inputAmount / 2;
+        if (zapParams.lpTokens[1] != address(zapParams.inputToken)) {
+            uint256 path1Length = zapParams.path1.length;
             require(path1Length > 0, "ApeSwapZap: path0 is required for this operation");
-            require(path1[0] == address(inputToken), "ApeSwapZap: wrong path path1[0]");
-            require(path1[path1Length - 1] == lpTokens[1], "ApeSwapZap: wrong path path1[-1]");
-            vars.amount1 = _routerSwap(vars.amount1, minAmountsSwap[1], path1, deadline);
+            require(zapParams.path1[0] == address(zapParams.inputToken), "ApeSwapZap: wrong path path1[0]");
+            require(zapParams.path1[path1Length - 1] == zapParams.lpTokens[1], "ApeSwapZap: wrong path path1[-1]");
+            vars.amount1 = _routerSwap(
+                vars.amount1,
+                zapParams.minAmountsSwap[1],
+                zapParams.path1,
+                zapParams.deadline,
+                false
+            );
         }
 
-        IERC20(lpTokens[0]).approve(address(router), vars.amount0);
-        IERC20(lpTokens[1]).approve(address(router), vars.amount1);
+        IERC20(zapParams.lpTokens[0]).approve(address(router), vars.amount0);
+        IERC20(zapParams.lpTokens[1]).approve(address(router), vars.amount1);
         (uint256 amountA, uint256 amountB, ) = router.addLiquidity(
-            lpTokens[0],
-            lpTokens[1],
+            zapParams.lpTokens[0],
+            zapParams.lpTokens[1],
             vars.amount0,
             vars.amount1,
-            minAmountsLP[0],
-            minAmountsLP[1],
-            to,
-            deadline
+            zapParams.minAmountsLP[0],
+            zapParams.minAmountsLP[1],
+            zapParams.to,
+            zapParams.deadline
         );
 
-        if (lpTokens[0] == WNATIVE) {
+        emit Zap(address(zapParams.inputToken), zapParams.inputAmount, zapParams.lpTokens, amountA, amountB);
+
+        if (zapParams.lpTokens[0] == address(WNATIVE)) {
             // Ensure WNATIVE is called last
-            _transfer(lpTokens[1], vars.amount1 - amountB, native);
-            _transfer(lpTokens[0], vars.amount0 - amountA, native);
+            _transferOut(zapParams.lpTokens[1], vars.amount1 - amountB, nativeOut);
+            _transferOut(zapParams.lpTokens[0], vars.amount0 - amountA, nativeOut);
         } else {
-            _transfer(lpTokens[0], vars.amount0 - amountA, native);
-            _transfer(lpTokens[1], vars.amount1 - amountB, native);
+            _transferOut(zapParams.lpTokens[0], vars.amount0 - amountA, nativeOut);
+            _transferOut(zapParams.lpTokens[1], vars.amount1 - amountB, nativeOut);
         }
     }
 }

@@ -27,31 +27,43 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IApeSwapZap {
+    struct ZapParams {
+        IERC20 inputToken;
+        uint256 inputAmount;
+        address[] lpTokens; // [token0, token1]
+        address[] path0;
+        address[] path1;
+        uint256[] minAmountsSwap; // [A, B]
+        uint256[] minAmountsLP; // [amountAMin, amountBMin]
+        address to;
+        uint256 deadline;
+    }
+
     function zap(
-        IERC20 _inputToken,
-        uint256 _inputAmount,
-        address[] memory _underlyingTokens, //[token0, token1]
-        address[] calldata _path0,
-        address[] calldata _path1,
-        uint256[] memory _minAmountsSwap, //[A, B]
-        uint256[] memory _minAmountsLP, //[amountAMin, amountBMin]
-        address _to,
-        uint256 _deadline
+        IERC20 inputToken,
+        uint256 inputAmount,
+        address[] memory lpTokens, //[token0, token1]
+        address[] calldata path0,
+        address[] calldata path1,
+        uint256[] memory minAmountsSwap, //[A, B]
+        uint256[] memory minAmountsLP, //[amountAMin, amountBMin]
+        address to,
+        uint256 deadline
     ) external;
 
     function zapNative(
-        address[] memory _underlyingTokens, //[token0, token1]
-        address[] calldata _path0,
-        address[] calldata _path1,
-        uint256[] memory _minAmountsSwap, //[A, B]
-        uint256[] memory _minAmountsLP, //[amountAMin, amountBMin]
-        address _to,
-        uint256 _deadline
+        address[] memory lpTokens, //[token0, token1]
+        address[] calldata path0,
+        address[] calldata path1,
+        uint256[] memory minAmountsSwap, //[A, B]
+        uint256[] memory minAmountsLP, //[amountAMin, amountBMin]
+        address to,
+        uint256 deadline
     ) external payable;
 
     function getMinAmounts(
-        uint256 _inputAmount,
-        address[] calldata _path0,
-        address[] calldata _path1
-    ) external view returns (uint256[2] memory _minAmountsSwap, uint256[2] memory _minAmountsLP);
+        uint256 inputAmount,
+        address[] calldata path0,
+        address[] calldata path1
+    ) external view returns (uint256[2] memory minAmountsSwap, uint256[2] memory minAmountsLP);
 }
