@@ -16,7 +16,7 @@ abstract contract ApeSwapZapVaults is ApeSwapZap {
     /// @notice Zap token into banana/gnana vault
     /// @param inputToken Input token to zap
     /// @param inputAmount Amount of input tokens to zap
-    /// @param underlyingTokens Tokens of LP to zap to
+    /// @param lpTokens Tokens of LP to zap to
     /// @param path0 Path from input token to LP token0
     /// @param path1 Path from input token to LP token1
     /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
@@ -26,7 +26,7 @@ abstract contract ApeSwapZapVaults is ApeSwapZap {
     function zapVault(
         IERC20 inputToken,
         uint256 inputAmount,
-        address[] memory underlyingTokens, //[token0, token1]
+        address[] memory lpTokens, //[token0, token1]
         address[] calldata path0,
         address[] calldata path1,
         uint256[] memory minAmountsSwap, //[A, B]
@@ -35,24 +35,21 @@ abstract contract ApeSwapZapVaults is ApeSwapZap {
         IMaximizerVaultApe maximizerVaultApe,
         uint256 vaultPid
     ) external nonReentrant {
-        IBaseBananaMaximizerStrategy vault = IBaseBananaMaximizerStrategy(maximizerVaultApe.vaults(vaultPid));
-        IApePair pair = IApePair(vault.STAKE_TOKEN_ADDRESS());
-        require(
-            (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
-                (underlyingTokens[1] == pair.token0() && underlyingTokens[0] == pair.token1()),
-            "ApeSwapZap: Wrong LP pair for Vault"
-        );
-
-        _zapInternal(
-            inputToken,
-            inputAmount,
-            underlyingTokens,
-            path0,
-            path1,
-            minAmountsSwap,
-            minAmountsLP,
-            address(this),
-            deadline
+        IApePair pair = _validateVault(lpTokens, maximizerVaultApe, vaultPid);
+        inputAmount = _transferIn(inputToken, inputAmount);
+        _zap(
+            ZapParams({
+                inputToken: inputToken,
+                inputAmount: inputAmount,
+                lpTokens: lpTokens,
+                path0: path0,
+                path1: path1,
+                minAmountsSwap: minAmountsSwap,
+                minAmountsLP: minAmountsLP,
+                to: address(this),
+                deadline: deadline
+            }),
+            false
         );
 
         uint256 balance = pair.balanceOf(address(this));
@@ -63,7 +60,7 @@ abstract contract ApeSwapZapVaults is ApeSwapZap {
     }
 
     /// @notice Zap native into banana/gnana vault
-    /// @param underlyingTokens Tokens of LP to zap to
+    /// @param lpTokens Tokens of LP to zap to
     /// @param path0 Path from input token to LP token0
     /// @param path1 Path from input token to LP token1
     /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
@@ -71,7 +68,7 @@ abstract contract ApeSwapZapVaults is ApeSwapZap {
     /// @param deadline Unix timestamp after which the transaction will revert
     /// @param vaultPid Vault pid
     function zapVaultNative(
-        address[] memory underlyingTokens, //[token0, token1]
+        address[] memory lpTokens, //[token0, token1]
         address[] calldata path0,
         address[] calldata path1,
         uint256[] memory minAmountsSwap, //[A, B]
@@ -80,20 +77,43 @@ abstract contract ApeSwapZapVaults is ApeSwapZap {
         IMaximizerVaultApe maximizerVaultApe,
         uint256 vaultPid
     ) external payable nonReentrant {
-        IBaseBananaMaximizerStrategy vault = IBaseBananaMaximizerStrategy(maximizerVaultApe.vaults(vaultPid));
-        IApePair pair = IApePair(vault.STAKE_TOKEN_ADDRESS());
-        require(
-            (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
-                (underlyingTokens[1] == pair.token0() && underlyingTokens[0] == pair.token1()),
-            "ApeSwapZap: Wrong LP pair for Vault"
+        IApePair pair = _validateVault(lpTokens, maximizerVaultApe, vaultPid);
+        (IERC20 weth, uint256 inputAmount) = _wrapNative();
+        _zap(
+            ZapParams({
+                inputToken: weth,
+                inputAmount: inputAmount,
+                lpTokens: lpTokens,
+                path0: path0,
+                path1: path1,
+                minAmountsSwap: minAmountsSwap,
+                minAmountsLP: minAmountsLP,
+                to: address(this),
+                deadline: deadline
+            }),
+            true
         );
-
-        _zapNativeInternal(underlyingTokens, path0, path1, minAmountsSwap, minAmountsLP, address(this), deadline);
 
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(maximizerVaultApe), balance);
         maximizerVaultApe.depositTo(vaultPid, msg.sender, balance);
         pair.approve(address(maximizerVaultApe), 0);
         emit ZapVaultNative(msg.value, vaultPid);
+    }
+
+    /** PRIVATE FUNCTIONs **/
+
+    function _validateVault(
+        address[] memory lpTokens,
+        IMaximizerVaultApe maximizerVaultApe,
+        uint256 vaultPid
+    ) private view returns (IApePair pair) {
+        IBaseBananaMaximizerStrategy vault = IBaseBananaMaximizerStrategy(maximizerVaultApe.vaults(vaultPid));
+        pair = IApePair(vault.STAKE_TOKEN_ADDRESS());
+        require(
+            (lpTokens[0] == pair.token0() && lpTokens[1] == pair.token1()) ||
+                (lpTokens[1] == pair.token0() && lpTokens[0] == pair.token1()),
+            "ApeSwapZap: Wrong LP pair for Vault"
+        );
     }
 }
