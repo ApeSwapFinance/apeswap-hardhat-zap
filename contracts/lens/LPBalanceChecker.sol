@@ -5,7 +5,7 @@ import "../lib/IApePair.sol";
 import "../lib/IMasterApe.sol";
 import "../lib/IApeFactory.sol";
 import "../lib/IPoolManager.sol";
-import "../lib/IBEP20RewardApeV6.sol";
+import "../extensions/pools/lib/IERC20RewardApe.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LPBalanceChecker is Ownable {
@@ -122,13 +122,13 @@ contract LPBalanceChecker is Ownable {
                 address[] memory apeSwapJFPools = poolManager.allActivePools();
                 for (uint256 poolId = 0; poolId < apeSwapJFPoolsCount; poolId++) {
                     address lpTokenAddress;
-                    try IBEP20RewardApeV6(apeSwapJFPools[poolId]).STAKE_TOKEN() returns (address _lpTokenAddress) {
-                        lpTokenAddress = _lpTokenAddress;
+                    try IERC20RewardApe(apeSwapJFPools[poolId]).STAKE_TOKEN() returns (IERC20 _lpTokenAddress) {
+                        lpTokenAddress = address(_lpTokenAddress);
                     } catch (bytes memory) {
                         continue;
                     }
 
-                    IApePair apeLpToken = IApePair(lpTokenAddress);
+                    IApePair apeLpToken = IApePair(address(lpTokenAddress));
 
                     Balance memory balance;
                     try apeLpToken.token0() returns (address _token0) {
