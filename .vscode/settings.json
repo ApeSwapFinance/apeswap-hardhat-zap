@@ -9,6 +9,8 @@
     "cSpell.words": [
         "ARBISCAN",
         "dont",
+        "IBEP",
+        "IWETH",
         "mixedcase",
         "nomicfoundation",
         "nomiclabs",
@@ -17,6 +19,7 @@
         "precommit",
         "telos",
         "TELOSSCAN",
-        "WBNB"
+        "WBNB",
+        "WNATIVE"
     ]
 }
