@@ -70,30 +70,23 @@ abstract contract ApeSwapZapLending is ApeSwapZap {
     ) internal returns (uint256 cTokensReceived) {
         // Validate path and market underlying
         IERC20 underlyingToken = IERC20(market.underlying());
+        IERC20 outputToken = underlyingToken;
         if (address(underlyingToken) == LENDING_NATIVE_UNDERLYING) {
             /// @dev The lending market uses a special address to represent native token
-            underlyingToken = IERC20(address(WNATIVE));
+            outputToken = IERC20(address(WNATIVE));
         }
         require(
-            (address(inputToken) == path[0] && address(underlyingToken) == path[path.length - 1]),
+            (address(inputToken) == path[0] && address(outputToken) == path[path.length - 1]),
             "ApeSwapZapLending: Wrong path for inputToken or principalToken"
         );
 
         _routerSwap(inputAmount, minAmountsSwap, path, deadline, true);
-        (, cTokensReceived) = _mintLendingMarket(market);
 
-        emit ZapLendingMarket(inputToken, inputAmount, market, cTokensReceived);
-    }
-
-    /** PRIVATE FUNCTIONS **/
-
-    function _mintLendingMarket(ICErc20 market) private returns (uint256 depositAmount, uint256 cTokensReceived) {
-        IERC20 underlyingToken = IERC20(market.underlying());
-        if (underlyingToken == IERC20(address(WNATIVE)) || address(underlyingToken) == LENDING_NATIVE_UNDERLYING) {
-            depositAmount = _unwrapNative();
+        if (address(underlyingToken) == LENDING_NATIVE_UNDERLYING) {
+            uint256 depositAmount = _unwrapNative();
             market.mint{value: depositAmount}();
         } else {
-            depositAmount = underlyingToken.balanceOf(address(this));
+            uint256 depositAmount = underlyingToken.balanceOf(address(this));
             underlyingToken.approve(address(market), depositAmount);
             uint256 mintFailure = market.mint(depositAmount);
             require(mintFailure == 0, "ApeSwapZapLending: Mint failed");
@@ -101,5 +94,7 @@ abstract contract ApeSwapZapLending is ApeSwapZap {
         }
         cTokensReceived = market.balanceOf(address(this));
         require(cTokensReceived > 0, "ApeSwapZapLending: Nothing deposited");
+
+        emit ZapLendingMarket(inputToken, inputAmount, market, cTokensReceived);
     }
 }
