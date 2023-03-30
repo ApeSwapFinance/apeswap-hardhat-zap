@@ -7,8 +7,7 @@ import "./lib/ICustomBill.sol";
 abstract contract ApeSwapZapTBills is ApeSwapZap {
     using SafeERC20 for IERC20;
 
-    event ZapTBill(IERC20 inputToken, uint256 inputAmount, ICustomBill bill);
-    event ZapTBillNative(uint256 inputAmount, ICustomBill bill);
+    event ZapTBill(ICustomBill bill, IERC20 principalToken, uint256 depositAmount, uint256 payoutAmount);
 
     /// @notice Zap single token to LP
     /// @param inputToken Input token to zap
@@ -33,27 +32,30 @@ abstract contract ApeSwapZapTBills is ApeSwapZap {
         ICustomBill bill,
         uint256 maxPrice
     ) external nonReentrant {
-        IApePair pair = IApePair(bill.principalToken());
-        require(
-            (lpTokens[0] == pair.token0() && lpTokens[1] == pair.token1()) ||
-                (lpTokens[1] == pair.token0() && lpTokens[0] == pair.token1()),
-            "ApeSwapZap: Wrong LP pair for TBill"
+        IApePair principalToken = _validateTBillZap(lpTokens, bill);
+        inputAmount = _transferIn(inputToken, inputAmount);
+        _zap(
+            ZapParams({
+                inputToken: inputToken,
+                inputAmount: inputAmount,
+                lpTokens: lpTokens,
+                path0: path0,
+                path1: path1,
+                minAmountsSwap: minAmountsSwap,
+                minAmountsLP: minAmountsLP,
+                to: address(this),
+                deadline: deadline
+            }),
+            false
         );
 
-        _zapInternal(
-            inputToken,
-            inputAmount,
-            lpTokens,
-            path0,
-            path1,
-            minAmountsSwap,
-            minAmountsLP,
-            address(this),
-            deadline
+        (uint256 depositAmount, uint256 payoutAmount) = _depositTBill(
+            bill,
+            IERC20(address(principalToken)),
+            maxPrice,
+            msg.sender
         );
-
-        _depositTBill(bill, IERC20(address(pair)), maxPrice, msg.sender);
-        emit ZapTBill(inputToken, inputAmount, bill);
+        emit ZapTBill(bill, IERC20(address(principalToken)), depositAmount, payoutAmount);
     }
 
     /// @notice Zap native token to Treasury Bill
@@ -75,17 +77,30 @@ abstract contract ApeSwapZapTBills is ApeSwapZap {
         ICustomBill bill,
         uint256 maxPrice
     ) external payable nonReentrant {
-        IApePair pair = IApePair(bill.principalToken());
-        require(
-            (lpTokens[0] == pair.token0() && lpTokens[1] == pair.token1()) ||
-                (lpTokens[1] == pair.token0() && lpTokens[0] == pair.token1()),
-            "ApeSwapZap: Wrong LP pair for TBill"
+        IApePair principalToken = _validateTBillZap(lpTokens, bill);
+        (IERC20 weth, uint256 inputAmount) = _wrapNative();
+        _zap(
+            ZapParams({
+                inputToken: weth,
+                inputAmount: inputAmount,
+                lpTokens: lpTokens,
+                path0: path0,
+                path1: path1,
+                minAmountsSwap: minAmountsSwap,
+                minAmountsLP: minAmountsLP,
+                to: address(this),
+                deadline: deadline
+            }),
+            true
         );
 
-        _zapNativeInternal(lpTokens, path0, path1, minAmountsSwap, minAmountsLP, address(this), deadline);
-
-        _depositTBill(bill, IERC20(address(pair)), maxPrice, msg.sender);
-        emit ZapTBillNative(msg.value, bill);
+        (uint256 depositAmount, uint256 payoutAmount) = _depositTBill(
+            bill,
+            IERC20(address(principalToken)),
+            maxPrice,
+            msg.sender
+        );
+        emit ZapTBill(bill, IERC20(address(principalToken)), depositAmount, payoutAmount);
     }
 
     /// @notice Zap token to single asset Treasury Bill
@@ -105,21 +120,8 @@ abstract contract ApeSwapZapTBills is ApeSwapZap {
         ICustomBill bill,
         uint256 maxPrice
     ) external nonReentrant {
-        IERC20 principalToken = IERC20(bill.principalToken());
-        require(
-            (address(inputToken) == path[0] && address(principalToken) == path[path.length - 1]),
-            "ApeSwapZapTBills: Wrong path for inputToken or principalToken"
-        );
-
-        uint256 balanceBefore = _getBalance(inputToken);
-        inputToken.safeTransferFrom(msg.sender, address(this), inputAmount);
-        inputAmount = _getBalance(inputToken) - balanceBefore;
-
-        inputToken.approve(address(router), inputAmount);
-        _routerSwap(inputAmount, minAmountsSwap, path, deadline);
-        _depositTBill(bill, principalToken, maxPrice, msg.sender);
-
-        emit ZapTBill(inputToken, inputAmount, bill);
+        inputAmount = _transferIn(inputToken, inputAmount);
+        _zapSingleAssetTBill(inputToken, inputAmount, path, minAmountsSwap, deadline, bill, maxPrice);
     }
 
     /// @notice Zap native token to single asset Treasury Bill
@@ -135,18 +137,52 @@ abstract contract ApeSwapZapTBills is ApeSwapZap {
         ICustomBill bill,
         uint256 maxPrice
     ) external payable nonReentrant {
-        (uint256 inputAmount, IERC20 inputToken) = _wrapNative();
+        (IERC20 weth, uint256 inputAmount) = _wrapNative();
+        _zapSingleAssetTBill(weth, inputAmount, path, minAmountsSwap, deadline, bill, maxPrice);
+    }
+
+    /** INTERNAL FUNCTIONs **/
+
+    /// @notice Zap token to single asset Treasury Bill
+    /// @param inputToken Input token to zap
+    /// @param inputAmount Amount of input tokens to zap
+    /// @param path Path from input token to stake token
+    /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
+    /// @param deadline Unix timestamp after which the transaction will revert
+    /// @param bill Pool address
+    /// @param maxPrice MaxPrice for purchasing a bill
+    function _zapSingleAssetTBill(
+        IERC20 inputToken,
+        uint256 inputAmount,
+        address[] calldata path,
+        uint256 minAmountsSwap,
+        uint256 deadline,
+        ICustomBill bill,
+        uint256 maxPrice
+    ) internal {
         IERC20 principalToken = IERC20(bill.principalToken());
         require(
             (address(inputToken) == path[0] && address(principalToken) == path[path.length - 1]),
             "ApeSwapZapTBills: Wrong path for inputToken or principalToken"
         );
 
-        inputToken.approve(address(router), inputAmount);
-        _routerSwap(inputAmount, minAmountsSwap, path, deadline);
-        _depositTBill(bill, principalToken, maxPrice, msg.sender);
+        _routerSwap(inputAmount, minAmountsSwap, path, deadline, true);
+        (uint256 depositAmount, uint256 payoutAmount) = _depositTBill(bill, principalToken, maxPrice, msg.sender);
 
-        emit ZapTBillNative(inputAmount, bill);
+        emit ZapTBill(bill, principalToken, depositAmount, payoutAmount);
+    }
+
+    /** INTERNAL FUNCTIONS **/
+    function _validateTBillZap(
+        address[] memory lpTokens,
+        ICustomBill bill
+    ) private view returns (IApePair principalToken) {
+        principalToken = IApePair(bill.principalToken());
+        require(
+            (lpTokens[0] == principalToken.token0() && lpTokens[1] == principalToken.token1()) ||
+                (lpTokens[1] == principalToken.token0() && lpTokens[0] == principalToken.token1()),
+            "ApeSwapZap: Wrong LP pair for TBill"
+        );
     }
 
     function _depositTBill(
@@ -154,11 +190,11 @@ abstract contract ApeSwapZapTBills is ApeSwapZap {
         IERC20 principalToken,
         uint256 maxPrice,
         address depositor
-    ) private returns (uint256 depositAmount) {
+    ) internal returns (uint256 depositAmount, uint256 payoutAmount) {
         depositAmount = principalToken.balanceOf(address(this));
         require(depositAmount > 0, "ApeSwapZapTBills: Nothing to deposit");
         principalToken.approve(address(bill), depositAmount);
-        bill.deposit(depositAmount, maxPrice, depositor);
+        payoutAmount = bill.deposit(depositAmount, maxPrice, depositor);
         principalToken.approve(address(bill), 0);
     }
 }
