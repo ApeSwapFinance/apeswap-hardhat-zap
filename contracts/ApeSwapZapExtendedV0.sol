@@ -44,4 +44,68 @@ contract ApeSwapZapExtendedV0 is
     constructor(
         IApeRouter02 _router
     ) ApeSwapZap(_router) ApeSwapZapLPMigrator(_router) ApeSwapZapMasterApeV2() ApeSwapZapLending() {}
+
+    /// @notice Zap token single asset lending market
+    /// @param inputToken Input token to zap
+    /// @param inputAmount Amount of input tokens to zap
+    /// @param path Path from input token to stake token
+    /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
+    /// @param deadline Unix timestamp after which the transaction will revert
+    /// @param market Lending market to deposit to
+    function zapLendingMarketTBill(
+        IERC20 inputToken,
+        uint256 inputAmount,
+        address[] calldata path,
+        uint256 minAmountsSwap,
+        uint256 deadline,
+        ICErc20 market,
+        ICustomBill bill,
+        uint256 maxPrice
+    ) external nonReentrant {
+        inputAmount = _transferIn(inputToken, inputAmount);
+        _zapLendingMarketTBill(inputToken, inputAmount, path, minAmountsSwap, deadline, market, bill, maxPrice);
+    }
+
+    /// @notice Zap native token to a Lending Market
+    /// @param path Path from input token to stake token
+    /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
+    /// @param deadline Unix timestamp after which the transaction will revert
+    /// @param market Lending market to deposit to
+    function zapLendingMarketTBillNative(
+        address[] calldata path,
+        uint256 minAmountsSwap,
+        uint256 deadline,
+        ICErc20 market,
+        ICustomBill bill,
+        uint256 maxPrice
+    ) external payable nonReentrant {
+        (IERC20 weth, uint256 inputAmount) = _wrapNative();
+        _zapLendingMarketTBill(weth, inputAmount, path, minAmountsSwap, deadline, market, bill, maxPrice);
+    }
+
+    /** INTERNAL FUNCTIONS **/
+
+    /// @notice Zap token single asset lending market
+    /// @param inputToken Input token to zap
+    /// @param inputAmount Amount of input tokens to zap
+    /// @param path Path from input token to stake token
+    /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
+    /// @param deadline Unix timestamp after which the transaction will revert
+    /// @param market Lending market to deposit to
+    function _zapLendingMarketTBill(
+        IERC20 inputToken,
+        uint256 inputAmount,
+        address[] calldata path,
+        uint256 minAmountsSwap,
+        uint256 deadline,
+        ICErc20 market,
+        ICustomBill bill,
+        uint256 maxPrice
+    ) internal {
+        address principalToken = bill.principalToken();
+        require(principalToken == address(market), "ApeSwapZapLendingTBill: principalToken must be the same as cToken");
+
+        _zapLendingMarket(inputToken, inputAmount, path, minAmountsSwap, deadline, market);
+        _depositTBill(bill, IERC20(principalToken), maxPrice, msg.sender);
+    }
 }
