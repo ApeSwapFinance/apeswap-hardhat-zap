@@ -1,1 +1,8 @@
 # Use this file to ignore .sol files from solhint linting
+contracts/lib
+contracts/lib/*.sol
+contracts/extensions/bills/lib/
+contracts/extensions/farms/lib/
+contracts/extensions/lending/lib/
+contracts/extensions/pools/lib/
+contracts/extensions/vaults/lib/
