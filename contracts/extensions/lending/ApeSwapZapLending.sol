@@ -8,10 +8,10 @@ abstract contract ApeSwapZapLending is ApeSwapZap {
     using SafeERC20 for IERC20;
     using SafeERC20 for ICErc20;
 
-    event ZapLendingMarket(IERC20 inputToken, uint256 inputAmount, ICErc20 market, uint256 outputAmount);
-
     /// @dev Native token market underlying
     address public constant LENDING_NATIVE_UNDERLYING = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    event ZapLendingMarket(IERC20 inputToken, uint256 inputAmount, ICErc20 market, uint256 outputAmount);
 
     constructor() {}
 

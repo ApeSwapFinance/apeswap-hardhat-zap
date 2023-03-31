@@ -173,17 +173,6 @@ abstract contract ApeSwapZapTBills is ApeSwapZap {
     }
 
     /** INTERNAL FUNCTIONS **/
-    function _validateTBillZap(
-        address[] memory lpTokens,
-        ICustomBill bill
-    ) private view returns (IApePair principalToken) {
-        principalToken = IApePair(bill.principalToken());
-        require(
-            (lpTokens[0] == principalToken.token0() && lpTokens[1] == principalToken.token1()) ||
-                (lpTokens[1] == principalToken.token0() && lpTokens[0] == principalToken.token1()),
-            "ApeSwapZap: Wrong LP pair for TBill"
-        );
-    }
 
     function _depositTBill(
         ICustomBill bill,
@@ -196,5 +185,17 @@ abstract contract ApeSwapZapTBills is ApeSwapZap {
         principalToken.approve(address(bill), depositAmount);
         payoutAmount = bill.deposit(depositAmount, maxPrice, depositor);
         principalToken.approve(address(bill), 0);
+    }
+
+    function _validateTBillZap(
+        address[] memory lpTokens,
+        ICustomBill bill
+    ) internal view returns (IApePair principalToken) {
+        principalToken = IApePair(bill.principalToken());
+        require(
+            (lpTokens[0] == principalToken.token0() && lpTokens[1] == principalToken.token1()) ||
+                (lpTokens[1] == principalToken.token0() && lpTokens[0] == principalToken.token1()),
+            "ApeSwapZap: Wrong LP pair for TBill"
+        );
     }
 }

@@ -49,10 +49,6 @@ contract ApeSwapZap is TransferHelper, IApeSwapZap, ReentrancyGuard {
         factory = IApeFactory(router.factory());
     }
 
-    function _wEthHelper(IApeRouter02 _router) private pure returns (IWETH) {
-        return IWETH(_router.WETH());
-    }
-
     /// @dev The receive method is used as a fallback function in a contract
     /// and is called when ether is sent to a contract with no calldata.
     receive() external payable {
@@ -260,5 +256,9 @@ contract ApeSwapZap is TransferHelper, IApeSwapZap, ReentrancyGuard {
             _transferOut(zapParams.lpTokens[0], vars.amount0 - amountA, nativeOut);
             _transferOut(zapParams.lpTokens[1], vars.amount1 - amountB, nativeOut);
         }
+    }
+
+    function _wEthHelper(IApeRouter02 _router) private pure returns (IWETH) {
+        return IWETH(_router.WETH());
     }
 }

@@ -9,12 +9,8 @@ contract TransferHelper {
 
     IWETH public immutable WNATIVE;
 
-    constructor(IWETH WNATIVE_) {
-        WNATIVE = WNATIVE_;
-    }
-
-    function _getBalance(IERC20 token) internal view returns (uint256 balance) {
-        balance = token.balanceOf(address(this));
+    constructor(IWETH wnative) {
+        WNATIVE = wnative;
     }
 
     /// @notice Wrap the msg.value into the Wrapped Native token
@@ -50,5 +46,9 @@ contract TransferHelper {
         } else {
             IERC20(token).safeTransfer(msg.sender, amount);
         }
+    }
+
+    function _getBalance(IERC20 token) internal view returns (uint256 balance) {
+        balance = token.balanceOf(address(this));
     }
 }
