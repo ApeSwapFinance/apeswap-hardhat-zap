@@ -23,6 +23,7 @@ export class DeployManager {
     await contractInstance.deployed()
 
     const deployDetails = {
+      // TODO: This doesn't provide a readable name
       name: contract.toString(),
       address: contractInstance.address,
       encodedConstructorArgs,
