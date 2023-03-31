@@ -26,7 +26,7 @@ pragma solidity 0.8.15;
 
 import "./ApeSwapZap.sol";
 import "./extensions/bills/ApeSwapZapTBills.sol";
-import "./extensions/pools/ApeSwapZapPools.sol";
+// import "./extensions/pools/ApeSwapZapPools.sol";
 import "./extensions/farms/ApeSwapZapMasterApeV2.sol";
 import "./extensions/lending/ApeSwapZapLending.sol";
 import "./lib/IApeRouter02.sol";
@@ -36,14 +36,11 @@ import "./lib/IApeRouter02.sol";
 contract ApeSwapZapExtendedV0 is
     ApeSwapZap,
     ApeSwapZapTBills,
-    ApeSwapZapPools,
+    /* ApeSwapZapPools, */
     ApeSwapZapMasterApeV2,
     ApeSwapZapLending
 {
-    constructor(
-        IApeRouter02 _router,
-        ITreasury _goldenBananaTreasury
-    ) ApeSwapZap(_router) ApeSwapZapPools(_goldenBananaTreasury) ApeSwapZapMasterApeV2() ApeSwapZapLending() {}
+    constructor(IApeRouter02 _router) ApeSwapZap(_router) ApeSwapZapMasterApeV2() ApeSwapZapLending() {}
 
     /// @notice Zap token single asset lending market
     /// @param inputToken Input token to zap

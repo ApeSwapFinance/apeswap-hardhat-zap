@@ -41,6 +41,7 @@ export class DeployManager {
         address: contract.address,
         constructorArguments: contract.constructorArguments,
       })
+      console.log(`Verified ${contract.name} at ${contract.address}`)
     }
   }
 

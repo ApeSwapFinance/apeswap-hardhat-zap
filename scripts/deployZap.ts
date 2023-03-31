@@ -19,20 +19,19 @@ async function main() {
     'ApeSwapZapExtendedV0'
   )) as ApeSwapZapExtendedV0__factory
 
-  await deployManager.deployContractFromFactory(ApeSwapZapExtendedV0_Factory, [apeRouterAddress, goldenBananaTreasury])
+  await deployManager.deployContractFromFactory(ApeSwapZapExtendedV0_Factory, [apeRouterAddress])
 
   const ApeSwapZap_factory = (await ethers.getContractFactory('ApeSwapZap')) as ApeSwapZap__factory
 
   await deployManager.deployContractFromFactory(ApeSwapZap_factory, [apeRouterAddress])
 
-  await deployManager.verifyContracts()
-  await deployManager.saveContractsToFile()
-
   const output = {
     ...deployManager.contracts,
   }
-
+  await deployManager.saveContractsToFile()
   console.dir(output, { depth: 5 })
+  // NOTE: Doing verifications last as they can take a bit
+  await deployManager.verifyContracts()
 }
 
 // We recommend this pattern to be able to use async/await everywhere
