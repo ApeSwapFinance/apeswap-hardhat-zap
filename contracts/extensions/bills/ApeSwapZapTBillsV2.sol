@@ -16,7 +16,8 @@ abstract contract ApeSwapZapTBillsV2 is ApeSwapZapV2 {
     /// inputAmount Amount of input tokens to zap
     /// underlyingTokens Tokens of LP to zap to
     /// paths Path from input token to LP token0
-    /// minAmounts The minimum amount of output tokens that must be received for swap and AmountAMin and amountBMin for adding liquidity
+    /// minAmounts The minimum amount of output tokens that must be received for
+    ///   swap and AmountAMin and amountBMin for adding liquidity
     /// deadline Unix timestamp after which the transaction will revert
     /// bill Treasury bill address
     /// maxPrice Max price of treasury bill
@@ -42,7 +43,8 @@ abstract contract ApeSwapZapTBillsV2 is ApeSwapZapV2 {
     /// @param zapParamsTBillNative all parameters for native tbill zap
     /// underlyingTokens Tokens of LP to zap to
     /// paths Path from input token to LP token0
-    /// minAmounts The minimum amount of output tokens that must be received for swap and AmountAMin and amountBMin for adding liquidity
+    /// minAmounts The minimum amount of output tokens that must be received for
+    ///   swap and AmountAMin and amountBMin for adding liquidity
     /// deadline Unix timestamp after which the transaction will revert
     /// bill Treasury bill address
     /// maxPrice Max price of treasury bill

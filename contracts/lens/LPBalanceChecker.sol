@@ -8,15 +8,7 @@ import "../lib/IPoolManager.sol";
 import "../lib/IBEP20RewardApeV6.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract LPBalanceChecker is Ownable {
-    address constant PCSMasterChefV2 = 0xa5f8C5Dbd5F286960b9d90548680aE5ebFf07652;
-    IMasterApe constant masterApe = IMasterApe(0x5c8D727b265DBAfaba67E050f2f739cAeEB4A6F9);
-    IPoolManager constant poolManager = IPoolManager(0x36524d6A9FB579A0b046edfC691ED47C2de5B8bf);
-
-    address[] public stakingContracts;
-
-    mapping(address => IApeFactory) stakingContractToFactory;
-
+contract LPBalanceCheckerBase {
     struct Balances {
         address stakingAddress;
         Balance[] balances;
@@ -32,9 +24,17 @@ contract LPBalanceChecker is Ownable {
         uint256 staked;
     }
 
-    constructor(address[] memory _stakingContracts, IApeFactory[] memory _factoryContract) Ownable() {
+    address public constant pcsMasterChefV2 = 0xa5f8C5Dbd5F286960b9d90548680aE5ebFf07652;
+    IMasterApe public constant masterApe = IMasterApe(0x5c8D727b265DBAfaba67E050f2f739cAeEB4A6F9);
+    IPoolManager public constant poolManager = IPoolManager(0x36524d6A9FB579A0b046edfC691ED47C2de5B8bf);
+
+    address[] public stakingContracts;
+
+    mapping(address => IApeFactory) public stakingContractToFactory;
+
+    constructor(address[] memory _stakingContracts, IApeFactory[] memory _factoryContract) {
         for (uint256 i = 0; i < _stakingContracts.length; i++) {
-            addStakingContract(_stakingContracts[i], _factoryContract[i]);
+            _addStakingContract(_stakingContracts[i], _factoryContract[i]);
         }
     }
 
@@ -52,7 +52,7 @@ contract LPBalanceChecker is Ownable {
 
             for (uint256 poolId = 0; poolId < poolLength; poolId++) {
                 address lpTokenAddress;
-                if (address(stakingContract) == PCSMasterChefV2) {
+                if (address(stakingContract) == pcsMasterChefV2) {
                     lpTokenAddress = stakingContract.lpToken(poolId); //PCS uses lpToken() instead of poolInfo()[0]
                 } else {
                     (lpTokenAddress, , , ) = stakingContract.poolInfo(poolId);
@@ -186,14 +186,28 @@ contract LPBalanceChecker is Ownable {
         }
     }
 
+    function _addStakingContract(address stakingContract, IApeFactory factoryContract) internal {
+        stakingContracts.push(stakingContract);
+        stakingContractToFactory[stakingContract] = factoryContract;
+    }
+}
+
+/**
+ * @dev Messing around with a pattern where the onlyOwner functions are completely in a separate contract
+ */
+contract LPBalanceChecker is LPBalanceCheckerBase, Ownable {
+    constructor(
+        address[] memory _stakingContracts,
+        IApeFactory[] memory _factoryContract
+    ) LPBalanceCheckerBase(_stakingContracts, _factoryContract) Ownable() {}
+
     function removeStakingContract(uint256 index) external onlyOwner {
         require(index < stakingContracts.length);
         stakingContracts[index] = stakingContracts[stakingContracts.length - 1];
         stakingContracts.pop();
     }
 
-    function addStakingContract(address stakingContract, IApeFactory factoryContract) public onlyOwner {
-        stakingContracts.push(stakingContract);
-        stakingContractToFactory[stakingContract] = factoryContract;
+    function addStakingContract(address stakingContract, IApeFactory factoryContract) external onlyOwner {
+        _addStakingContract(stakingContract, factoryContract);
     }
 }

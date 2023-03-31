@@ -9,13 +9,7 @@ import "./lib/IDualStakingRewardsFactory.sol";
 import "./lib/IStakingDualRewards.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract LPBalanceCheckerPolygon is Ownable {
-    address[] public stakingContracts;
-    IStakingRewardsFactory quickswapStakingRewardsFactory =
-        IStakingRewardsFactory(0x8aAA5e259F74c8114e0a471d9f2ADFc66Bfe09ed);
-    IDualStakingRewardsFactory quickswapDualStakingRewardsFactory =
-        IDualStakingRewardsFactory(0x9Dd12421C637689c3Fc6e661C9e2f02C2F61b3Eb);
-
+contract LPBalanceCheckerPolygonBase {
     struct Balances {
         address stakingAddress;
         Balance[] balances;
@@ -31,9 +25,15 @@ contract LPBalanceCheckerPolygon is Ownable {
         uint256 staked;
     }
 
-    constructor(address[] memory _stakingContracts) Ownable() {
+    address[] public stakingContracts;
+    IStakingRewardsFactory public quickswapStakingRewardsFactory =
+        IStakingRewardsFactory(0x8aAA5e259F74c8114e0a471d9f2ADFc66Bfe09ed);
+    IDualStakingRewardsFactory public quickswapDualStakingRewardsFactory =
+        IDualStakingRewardsFactory(0x9Dd12421C637689c3Fc6e661C9e2f02C2F61b3Eb);
+
+    constructor(address[] memory _stakingContracts) {
         for (uint256 i = 0; i < _stakingContracts.length; i++) {
-            addStakingContract(_stakingContracts[i]);
+            _addStakingContract(_stakingContracts[i]);
         }
     }
 
@@ -186,6 +186,17 @@ contract LPBalanceCheckerPolygon is Ownable {
         pBalance.balances = balances;
     }
 
+    function _addStakingContract(address stakingContract) internal {
+        stakingContracts.push(stakingContract);
+    }
+}
+
+/**
+ * @dev Messing around with a pattern where the onlyOwner functions are completely in a separate contract
+ */
+contract LPBalanceCheckerPolygon is LPBalanceCheckerPolygonBase, Ownable {
+    constructor(address[] memory _stakingContracts) LPBalanceCheckerPolygonBase(_stakingContracts) Ownable() {}
+
     function removeStakingContract(uint256 index) external onlyOwner {
         require(index < stakingContracts.length);
         stakingContracts[index] = stakingContracts[stakingContracts.length - 1];
@@ -193,6 +204,6 @@ contract LPBalanceCheckerPolygon is Ownable {
     }
 
     function addStakingContract(address stakingContract) public onlyOwner {
-        stakingContracts.push(stakingContract);
+        _addStakingContract(stakingContract);
     }
 }
