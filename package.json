@@ -1,5 +1,5 @@
 {
-  "name": "@defifofum/hardhat-template",
+  "name": "@ape.swap/hardhat-zap",
   "version": "0.0.5",
   "description": "Solidity Smart Contract development template using modern Web3 frameworks/tools including Hardhat, Typechain and more.",
   "main": "./dist/index.js",
@@ -33,15 +33,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DeFiFoFum/hardhat-template.git"
+    "url": "git+https://github.com/ape.swap/hardhat-zap.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/DeFiFoFum/hardhat-template/issues"
+    "url": "https://github.com/ape.swap/hardhat-zap/issues"
   },
-  "homepage": "https://github.com/DeFiFoFum/hardhat-template#readme",
+  "homepage": "https://github.com/ape.swap/hardhat-zap#readme",
   "resolutions": {
     "got": "^11.8.5",
     "node-fetch": "^2.6.7",
