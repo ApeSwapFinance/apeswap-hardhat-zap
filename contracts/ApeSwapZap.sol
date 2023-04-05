@@ -179,6 +179,7 @@ contract ApeSwapZap is TransferHelper, IApeSwapZap, ReentrancyGuard {
         uint256 deadline,
         bool needApproval
     ) internal returns (uint256 amountOut) {
+        require(amountIn > 0, "ApeSwapZap: amountIn must be greater than zero");
         if (needApproval) {
             IERC20(path[0]).approve(address(router), amountIn);
         }
@@ -192,6 +193,7 @@ contract ApeSwapZap is TransferHelper, IApeSwapZap, ReentrancyGuard {
     /// @param zapParams ZapParams struct
     /// @param nativeOut Whether to unwrap native token when refunding sender
     function _zap(ZapParams memory zapParams, bool nativeOut) internal {
+        require(zapParams.inputAmount > 0, "ApeSwapZap: inputAmount must be greater than zero");
         require(zapParams.to != address(0), "ApeSwapZap: Can't zap to null address");
         require(zapParams.lpTokens.length == 2, "ApeSwapZap: need exactly 2 tokens to form a LP");
         require(

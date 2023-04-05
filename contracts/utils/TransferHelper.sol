@@ -30,6 +30,7 @@ contract TransferHelper {
     }
 
     function _transferIn(IERC20 token, uint256 amount) internal returns (uint256 inputAmount) {
+        if (amount == 0) return 0;
         uint256 balanceBefore = _getBalance(token);
         token.safeTransferFrom(msg.sender, address(this), amount);
         inputAmount = _getBalance(token) - balanceBefore;
