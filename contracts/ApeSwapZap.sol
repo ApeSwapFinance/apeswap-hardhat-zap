@@ -58,7 +58,7 @@ contract ApeSwapZap is TransferHelper, IApeSwapZap, ReentrancyGuard {
     /// @notice Zap single token to LP
     /// @param inputToken Input token
     /// @param inputAmount Input amount
-    /// @param lpTokens Tokens of LP to zap getMinAmounts
+    /// @param lpTokens Tokens of LP to zap to
     /// @param path0 Path from input token to LP token0
     /// @param path1 Path from input token to LP token1
     /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
