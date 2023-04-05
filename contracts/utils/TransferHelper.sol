@@ -35,16 +35,16 @@ contract TransferHelper {
         inputAmount = _getBalance(token) - balanceBefore;
     }
 
-    function _transferOut(address token, uint256 amount, bool native) internal {
+    function _transferOut(IERC20 token, uint256 amount, address to, bool native) internal {
         if (amount == 0) return;
-        if (token == address(WNATIVE) && native) {
+        if (address(token) == address(WNATIVE) && native) {
             IWETH(WNATIVE).withdraw(amount);
             // 2600 COLD_ACCOUNT_ACCESS_COST plus 2300 transfer gas - 1
             // Intended to support transfers to contracts, but not allow for further code execution
-            (bool success, ) = msg.sender.call{value: amount, gas: 4899}("");
+            (bool success, ) = to.call{value: amount, gas: 4899}("");
             require(success, "native transfer error");
         } else {
-            IERC20(token).safeTransfer(msg.sender, amount);
+            token.safeTransfer(to, amount);
         }
     }
 

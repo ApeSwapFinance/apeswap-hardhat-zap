@@ -250,11 +250,11 @@ contract ApeSwapZap is TransferHelper, IApeSwapZap, ReentrancyGuard {
 
         if (zapParams.lpTokens[0] == address(WNATIVE)) {
             // Ensure WNATIVE is called last
-            _transferOut(zapParams.lpTokens[1], vars.amount1 - amountB, nativeOut);
-            _transferOut(zapParams.lpTokens[0], vars.amount0 - amountA, nativeOut);
+            _transferOut(IERC20(zapParams.lpTokens[1]), vars.amount1 - amountB, msg.sender, nativeOut);
+            _transferOut(IERC20(zapParams.lpTokens[0]), vars.amount0 - amountA, msg.sender, nativeOut);
         } else {
-            _transferOut(zapParams.lpTokens[0], vars.amount0 - amountA, nativeOut);
-            _transferOut(zapParams.lpTokens[1], vars.amount1 - amountB, nativeOut);
+            _transferOut(IERC20(zapParams.lpTokens[0]), vars.amount0 - amountA, msg.sender, nativeOut);
+            _transferOut(IERC20(zapParams.lpTokens[1]), vars.amount1 - amountB, msg.sender, nativeOut);
         }
     }
 
