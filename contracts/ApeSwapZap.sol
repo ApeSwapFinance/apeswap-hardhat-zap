@@ -44,7 +44,7 @@ contract ApeSwapZap is TransferHelper, IApeSwapZap, ReentrancyGuard {
 
     event Zap(address inputToken, uint256 inputAmount, address[] lpTokens, uint256 amountA, uint256 amountB);
 
-    constructor(IApeRouter02 _router) TransferHelper(_wEthHelper(_router)) {
+    constructor(IApeRouter02 _router) TransferHelper(IWETH(_router.WETH())) {
         router = _router;
         factory = IApeFactory(router.factory());
     }
@@ -258,9 +258,5 @@ contract ApeSwapZap is TransferHelper, IApeSwapZap, ReentrancyGuard {
             _transferOut(IERC20(zapParams.lpTokens[0]), vars.amount0 - amountA, msg.sender, nativeOut);
             _transferOut(IERC20(zapParams.lpTokens[1]), vars.amount1 - amountB, msg.sender, nativeOut);
         }
-    }
-
-    function _wEthHelper(IApeRouter02 _router) private pure returns (IWETH) {
-        return IWETH(_router.WETH());
     }
 }
