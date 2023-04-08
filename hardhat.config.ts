@@ -96,6 +96,14 @@ const networkConfig: Record<Network, NetworkUserConfigExtended> = {
       mnemonic: mainnetMnemonic,
     },
   },
+  bscDummy: {
+    url: getEnv('BSC_RPC_URL') || 'https://bsc-dataseed1.binance.org',
+    getExplorerUrl: (address: string) => `https://bscscan.com/address/${address}`,
+    chainId: 56,
+    accounts: {
+      mnemonic: mainnetMnemonic,
+    },
+  },
   bscTestnet: {
     url: getEnv('BSC_TESTNET_RPC_URL') || 'https://data-seed-prebsc-1-s1.binance.org:8545',
     getExplorerUrl: (address: string) => `https://testnet.bscscan.com/address/${address}`,
