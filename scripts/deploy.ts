@@ -6,18 +6,12 @@ import { ethers } from 'hardhat'
  * its own task in ../tasks/ organized by date.
  */
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000)
-  const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60
-  const unlockTime = currentTimestampInSeconds + ONE_YEAR_IN_SECS
+  const ApeSwapZapFullV5 = await ethers.getContractFactory('ApeSwapZapFullV5')
+  const zap = await ApeSwapZapFullV5.deploy('0x0000000000000000000000000000000000000000', { gasPrice: '150000000000' })
 
-  const lockedAmount = ethers.utils.parseEther('1')
+  await zap.deployed()
 
-  const Lock = await ethers.getContractFactory('Lock')
-  const lock = await Lock.deploy(unlockTime, { value: lockedAmount })
-
-  await lock.deployed()
-
-  console.log('Lock with 1 ETH deployed to:', lock.address)
+  console.log('ZAP: ', zap.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
