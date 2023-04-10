@@ -28,12 +28,11 @@ import "./ApeSwapZap.sol";
 import "./extensions/bills/ApeSwapZapTBills.sol";
 import "./extensions/ApeSwapZapLPMigrator.sol";
 import "./extensions/pools/ApeSwapZapPools.sol";
-import "./extensions/vaults/ApeSwapZapVaults.sol";
-import "./lib/IApeRouter02.sol";
+import "../interfaces/IApeRouter02.sol";
 
-contract ApeSwapZapFullV2 is ApeSwapZap, ApeSwapZapTBills, ApeSwapZapLPMigrator, ApeSwapZapPools, ApeSwapZapVaults {
+contract ApeSwapZapFullV1 is ApeSwapZap, ApeSwapZapTBills, ApeSwapZapLPMigrator, ApeSwapZapPools {
     constructor(
         IApeRouter02 _router,
         ITreasury _goldenBananaTreasury
-    ) ApeSwapZap(_router) ApeSwapZapLPMigrator(_router) ApeSwapZapPools(_goldenBananaTreasury) ApeSwapZapVaults() {}
+    ) ApeSwapZap(_router) ApeSwapZapLPMigrator(_router) ApeSwapZapPools(_goldenBananaTreasury) {}
 }

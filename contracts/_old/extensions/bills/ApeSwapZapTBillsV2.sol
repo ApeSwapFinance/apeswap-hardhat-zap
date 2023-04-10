@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "../../ApeSwapZapV2.sol";
-import "./lib/ICustomBill.sol";
-import "../../lib/IApeRouter02.sol";
-import "../../lib/IApeSwapZapV2.sol";
+import "./libraries/ICustomBill.sol";
+import "../../interfaces/IApeSwapZapV2.sol";
+import "../../../interfaces/IApeRouter02.sol";
 
 abstract contract ApeSwapZapTBillsV2 is ApeSwapZapV2 {
     event ZapTBill(ZapParamsTBill zapParamsTBill);

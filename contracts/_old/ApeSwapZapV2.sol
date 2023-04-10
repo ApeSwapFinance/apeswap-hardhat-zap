@@ -24,15 +24,15 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance 
  */
 
-import "./lib/IApeSwapZapV2.sol";
-import "./lib/IApeRouter02.sol";
-import "./lib/IApeFactory.sol";
-import "./lib/IApePair.sol";
-import "./lib/IWETH.sol";
-import "./lib/IArrakisRouter.sol";
-import "./lib/IArrakisPool.sol";
-import "./lib/IArrakisFactoryV1.sol";
-import "./lib/ArrakisMath.sol";
+import "./interfaces/IApeSwapZapV2.sol";
+import "../interfaces/IApeRouter02.sol";
+import "../interfaces/IApeFactory.sol";
+import "../interfaces/IApePair.sol";
+import "../interfaces/IWETH.sol";
+import "../interfaces/IArrakisRouter.sol";
+import "../interfaces/IArrakisPool.sol";
+import "../interfaces/IArrakisFactoryV1.sol";
+import "./libraries/ArrakisMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";

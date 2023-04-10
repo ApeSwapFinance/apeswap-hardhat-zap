@@ -25,14 +25,10 @@ pragma solidity 0.8.15;
  */
 
 import "./ApeSwapZap.sol";
-import "./extensions/bills/ApeSwapZapTBills.sol";
 import "./extensions/ApeSwapZapLPMigrator.sol";
-import "./extensions/pools/ApeSwapZapPools.sol";
-import "./lib/IApeRouter02.sol";
+import "./extensions/bills/ApeSwapZapTBills.sol";
+import "../interfaces/IApeRouter02.sol";
 
-contract ApeSwapZapFullV1 is ApeSwapZap, ApeSwapZapTBills, ApeSwapZapLPMigrator, ApeSwapZapPools {
-    constructor(
-        IApeRouter02 _router,
-        ITreasury _goldenBananaTreasury
-    ) ApeSwapZap(_router) ApeSwapZapLPMigrator(_router) ApeSwapZapPools(_goldenBananaTreasury) {}
+contract ApeSwapZapFullV0 is ApeSwapZap, ApeSwapZapTBills, ApeSwapZapLPMigrator {
+    constructor(IApeRouter02 _router) ApeSwapZap(_router) ApeSwapZapLPMigrator(_router) {}
 }

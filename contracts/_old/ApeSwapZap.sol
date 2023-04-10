@@ -24,11 +24,11 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./lib/IApeSwapZap.sol";
-import "./lib/IApeRouter02.sol";
-import "./lib/IApeFactory.sol";
-import "./lib/IApePair.sol";
-import "./lib/IWETH.sol";
+import "./interfaces/IApeSwapZap.sol";
+import "../interfaces/IApeRouter02.sol";
+import "../interfaces/IApeFactory.sol";
+import "../interfaces/IApePair.sol";
+import "../interfaces/IWETH.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {

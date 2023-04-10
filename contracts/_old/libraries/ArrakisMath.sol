@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.15;
 
-import "./IArrakisPool.sol";
+import "../../interfaces/IArrakisPool.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import "./IApeRouter02.sol";
-import "./IArrakisFactoryV1.sol";
+import "../../interfaces/IApeRouter02.sol";
+import "../../interfaces/IArrakisFactoryV1.sol";
 
 library ArrakisMath {
     struct SwapRatioParams {

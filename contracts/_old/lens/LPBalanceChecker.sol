@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.15;
 
-import "../lib/IApePair.sol";
-import "../lib/IMasterApe.sol";
-import "../lib/IApeFactory.sol";
-import "../lib/IPoolManager.sol";
-import "../lib/IBEP20RewardApeV6.sol";
+import "../../interfaces/IApePair.sol";
+import "../../interfaces/IMasterApe.sol";
+import "../../interfaces/IApeFactory.sol";
+import "../../interfaces/IPoolManager.sol";
+import "../../interfaces/IBEP20RewardApeV6.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LPBalanceCheckerBase {

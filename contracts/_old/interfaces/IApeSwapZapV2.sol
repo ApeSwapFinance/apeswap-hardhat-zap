@@ -25,8 +25,8 @@ pragma solidity ^0.8.0;
  */
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./IApeRouter02.sol";
-import "../extensions/bills/lib/ICustomBill.sol";
+import "../../interfaces/IApeRouter02.sol";
+import "../extensions/bills/libraries/ICustomBill.sol";
 
 interface IApeSwapZapV2 {
     enum SwapType {
