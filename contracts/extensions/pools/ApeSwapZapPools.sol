@@ -48,7 +48,7 @@ abstract contract ApeSwapZapPools is TransferHelper {
         GNANA = gnana;
     }
 
-    function zapPool(ZapPoolParams memory params) internal {
+    function zapPool(ZapPoolParams memory params) external payable {
         IERC20 inputToken = params.pool.STAKE_TOKEN();
         params.inputAmount = _transferIn(inputToken, params.inputAmount);
 

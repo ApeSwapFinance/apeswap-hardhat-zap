@@ -14,28 +14,27 @@ pragma solidity 0.8.15;
          | ▓▓                                             | ▓▓      
          | ▓▓                                             | ▓▓      
           \▓▓                                              \▓▓         
-
- * App:             https://apeswap.finance
+ * App:             https://ApeSwap.finance
  * Medium:          https://ape-swap.medium.com
  * Twitter:         https://twitter.com/ape_swap
- * Discord:         https://discord.com/invite/apeswap
  * Telegram:        https://t.me/ape_swap
  * Announcements:   https://t.me/ape_swap_news
+ * Discord:         https://ApeSwap.click/discord
+ * Reddit:          https://reddit.com/r/ApeSwap
+ * Instagram:       https://instagram.com/ApeSwap.finance
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
 import "../interfaces/IArrakisPool.sol";
 import "../interfaces/IApeRouter02.sol";
 import "../interfaces/IArrakisFactoryV1.sol";
-import "../interfaces/IZapAnalyzer.sol";
+import "../lens/ZapAnalyzer.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "@uniswap/v3-core/contracts/libraries/FullMath.sol";
 import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
-
-import "hardhat/console.sol";
 
 library MathHelper {
     struct SwapRatioParams {
@@ -46,8 +45,8 @@ library MathHelper {
         uint24 fee;
         int24 tickLower;
         int24 tickUpper;
-        IZapAnalyzer.SwapPath[] path0;
-        IZapAnalyzer.SwapPath[] path1;
+        ZapAnalyzer.SwapPath[] path0;
+        ZapAnalyzer.SwapPath[] path1;
         address uniV3Factory;
     }
 
@@ -82,9 +81,11 @@ library MathHelper {
     /// uniV3PoolFees1 uniV3 pool fees for path1
     /// arrakisPool arrakis pool
     /// uniV3Factory uniV3 factory
-    function getSwapRatio(
-        SwapRatioParams memory swapRatioParams
-    ) internal view returns (uint256 amount0, uint256 amount1) {
+    function getSwapRatio(SwapRatioParams memory swapRatioParams)
+        internal
+        view
+        returns (uint256 amount0, uint256 amount1)
+    {
         SwapRatioLocalVars memory vars;
 
         (vars.underlying0, vars.underlying1) = getLPAddRatio(
@@ -95,7 +96,6 @@ library MathHelper {
             swapRatioParams.tickLower,
             swapRatioParams.tickUpper
         );
-        console.log("underlying", vars.underlying0, vars.underlying1);
 
         vars.token0decimals = ERC20(address(swapRatioParams.token0)).decimals();
         vars.token1decimals = ERC20(address(swapRatioParams.token1)).decimals();
@@ -143,27 +143,25 @@ library MathHelper {
     /// @param amount Amount of tokens
     /// @param decimals Decimals of given token amount to scale. MUST be <=18
     function _normalizeTokenDecimals(uint256 amount, uint256 decimals) internal pure returns (uint256) {
-        return amount * 10 ** (18 - decimals);
+        return amount * 10**(18 - decimals);
     }
 
     /// @notice Returns value based on other token
     /// @param fullPath swap path
     /// @return weightedPrice value of last token of path based on first
-    function getWeightedPrice(IZapAnalyzer.SwapPath[] memory fullPath) internal view returns (uint256 weightedPrice) {
+    function getWeightedPrice(ZapAnalyzer.SwapPath[] memory fullPath) internal view returns (uint256 weightedPrice) {
         weightedPrice = 1e18;
         for (uint256 i = 0; i < fullPath.length; i++) {
-            console.log("start", i);
-            IZapAnalyzer.SwapPath memory path = fullPath[i];
-            if (path.swapType == IZapAnalyzer.SwapType.V2) {
+            ZapAnalyzer.SwapPath memory path = fullPath[i];
+            if (path.swapType == ZapAnalyzer.SwapType.V2) {
                 uint256 tokenDecimals = getTokenDecimals(path.path[path.path.length - 1]);
 
                 uint256[] memory amountsOut0 = IApeRouter02(path.swapRouter).getAmountsOut(1e18, path.path);
                 weightedPrice =
                     (weightedPrice * _normalizeTokenDecimals(amountsOut0[amountsOut0.length - 1], tokenDecimals)) /
                     1e18;
-            } else if (path.swapType == IZapAnalyzer.SwapType.V3) {
+            } else if (path.swapType == ZapAnalyzer.SwapType.V3) {
                 for (uint256 index = 0; index < path.path.length - 1; index++) {
-                    console.log(path.path[index], path.path[index + 1], path.uniV3PoolFees[index], path.swapRouter);
                     weightedPrice =
                         (weightedPrice *
                             pairTokensAndValue(
@@ -175,7 +173,6 @@ library MathHelper {
                         1e18;
                 }
             }
-            console.log("weightedPrice", i, fullPath.length, weightedPrice);
         }
     }
 
@@ -208,9 +205,9 @@ library MathHelper {
         uint256 token1Decimals = getTokenDecimals(token1);
 
         if (token1 < token0) {
-            price = (2 ** 192) / ((sqrtPriceX96) ** 2 / uint256(10 ** (token0Decimals + 18 - token1Decimals)));
+            price = (2**192) / ((sqrtPriceX96)**2 / uint256(10**(token0Decimals + 18 - token1Decimals)));
         } else {
-            price = ((sqrtPriceX96) ** 2) / ((2 ** 192) / uint256(10 ** (token0Decimals + 18 - token1Decimals)));
+            price = ((sqrtPriceX96)**2) / ((2**192) / uint256(10**(token0Decimals + 18 - token1Decimals)));
         }
     }
 

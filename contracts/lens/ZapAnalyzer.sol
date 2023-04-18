@@ -14,24 +14,68 @@ pragma solidity 0.8.15;
          | ▓▓                                             | ▓▓      
          | ▓▓                                             | ▓▓      
           \▓▓                                              \▓▓         
-
- * App:             https://apeswap.finance
+ * App:             https://ApeSwap.finance
  * Medium:          https://ape-swap.medium.com
  * Twitter:         https://twitter.com/ape_swap
- * Discord:         https://discord.com/invite/apeswap
  * Telegram:        https://t.me/ape_swap
  * Announcements:   https://t.me/ape_swap_news
+ * Discord:         https://ApeSwap.click/discord
+ * Reddit:          https://reddit.com/r/ApeSwap
+ * Instagram:       https://instagram.com/ApeSwap.finance
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
 import "../interfaces/IApeFactory.sol";
 import "../interfaces/IArrakisRouter.sol";
-import "../interfaces/IZapAnalyzer.sol";
+import "../interfaces/IArrakisFactoryV1.sol";
 import "../libraries/MathHelper.sol";
 
-import "hardhat/console.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
-contract ZapAnalyzer is IZapAnalyzer {
+contract ZapAnalyzer {
+    enum SwapType {
+        V2,
+        V3
+    }
+
+    struct SwapPath {
+        address swapRouter;
+        SwapType swapType;
+        address[] path;
+        uint24[] uniV3PoolFees; // Required if dexType == V3
+    }
+
+    enum LiquidityType {
+        V2,
+        V3,
+        Arrakis
+    }
+
+    struct LiquidityPath {
+        address lpRouter;
+        LiquidityType liquidityType;
+        uint24 uniV3PoolLPFee;
+        int24 tickLower;
+        int24 tickUpper;
+        address arrakisFactory; // Required if lpType == Arrakis
+    }
+
+    struct SwapReturnsParams {
+        uint256 inputAmount;
+        SwapPath[] path0;
+        SwapPath[] path1;
+        LiquidityPath liquidityPath;
+    }
+
+    struct SwapReturns {
+        uint256 swapToToken0;
+        uint256 swapToToken1;
+        uint256 minAmountSwap0;
+        uint256 minAmountSwap1;
+        uint256 minAmountLP0;
+        uint256 minAmountLP1;
+    }
+
     struct minAmountsLocalVars {
         uint256 inputAmountHalf;
         IApeFactory factory;
@@ -50,12 +94,13 @@ contract ZapAnalyzer is IZapAnalyzer {
 
     /// @notice get min amounts for swaps
     /// @param params all params
-    function estimateSwapReturns(
-        SwapReturnsParams memory params
-    ) external view returns (SwapReturns memory returnValues) {
+    function estimateSwapReturns(SwapReturnsParams memory params)
+        external
+        view
+        returns (SwapReturns memory returnValues)
+    {
         minAmountsLocalVars memory vars;
 
-        console.log("START");
         vars.token0 = params.path0.length == 0
             ? params.path1[0].path[0]
             : params.path0[params.path0.length - 1].path[params.path0[params.path0.length - 1].path.length - 1];
@@ -63,8 +108,6 @@ contract ZapAnalyzer is IZapAnalyzer {
             ? params.path0[0].path[0]
             : params.path1[params.path1.length - 1].path[params.path1[params.path1.length - 1].path.length - 1];
         vars.inputToken = params.path0.length > 0 ? params.path0[0].path[0] : params.path1[0].path[0];
-
-        console.log(vars.token0, vars.token1, vars.inputToken);
 
         if (params.liquidityPath.liquidityType == LiquidityType.V2) {
             //V2 swap amounts
@@ -108,7 +151,6 @@ contract ZapAnalyzer is IZapAnalyzer {
             });
             (returnValues.swapToToken0, returnValues.swapToToken1) = MathHelper.getSwapRatio(swapRatioParams);
         }
-        console.log("swapToTokens", returnValues.swapToToken0, returnValues.swapToToken1);
 
         vars.weightedPrice0 = vars.inputToken == vars.token0 ? 1e18 : MathHelper.getWeightedPrice(params.path0);
         vars.weightedPrice1 = vars.inputToken == vars.token1 ? 1e18 : MathHelper.getWeightedPrice(params.path1);

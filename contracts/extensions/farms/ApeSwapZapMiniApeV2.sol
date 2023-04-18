@@ -19,7 +19,7 @@ abstract contract ApeSwapZapMiniApeV2 is TransferHelper {
 
     event ZapMiniApeV2(zapMiniApeV2Params params);
 
-    function zapMiniApeV2(zapMiniApeV2Params memory params) external {
+    function zapMiniApeV2(zapMiniApeV2Params memory params) external payable {
         IERC20 inputToken = IERC20(IMiniApeV2(params.miniApe).lpToken(params.pid));
         params.inputAmount = _transferIn(inputToken, params.inputAmount);
 

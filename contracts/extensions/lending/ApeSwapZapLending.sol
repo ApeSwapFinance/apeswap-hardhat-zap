@@ -18,14 +18,18 @@ abstract contract ApeSwapZapLending is TransferHelper {
     /// @param inputAmount Amount of input tokens to zap
     /// @param market Lending market to deposit to
     /// @param recipient Recipient of cTokens
-    function zapLending(uint256 inputAmount, ICErc20 market, address recipient) external payable {
+    function zapLendingMarket(
+        uint256 inputAmount,
+        ICErc20 market,
+        address recipient
+    ) external payable {
         IERC20 underlyingToken = IERC20(market.underlying());
-        inputAmount = _transferIn(underlyingToken, inputAmount);
 
         if (address(underlyingToken) == LENDING_NATIVE_UNDERLYING) {
-            uint256 depositAmount = msg.value;
+            uint256 depositAmount = inputAmount == 0 ? address(this).balance : inputAmount;
             market.mint{value: depositAmount}();
         } else {
+            inputAmount = _transferIn(underlyingToken, inputAmount);
             uint256 depositAmount = underlyingToken.balanceOf(address(this));
             underlyingToken.approve(address(market), depositAmount);
             uint256 mintFailure = market.mint(depositAmount);
@@ -42,14 +46,5 @@ abstract contract ApeSwapZapLending is TransferHelper {
         }
 
         emit ZapLending(inputAmount, market, cTokensReceived);
-    }
-
-    function zapLendingMarket(uint256 inputAmount, ICErc20 market) public payable {
-        IERC20 token = IERC20(market.underlying());
-        inputAmount = _transferIn(token, inputAmount);
-        token.approve(address(market), inputAmount);
-        market.transfer(msg.sender, inputAmount);
-        token.approve(address(market), 0);
-        emit ZapLendingMarket(inputAmount, market);
     }
 }

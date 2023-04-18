@@ -10,7 +10,7 @@ import {
 import { mine, time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import { ethers } from 'hardhat'
-import { ADDRESS_ZERO } from './utils/constants'
+import { ADDRESS_ZERO, ADDRESS_ONE, ADDRESS_TWO } from './utils/constants'
 import { StringDecoder } from 'string_decoder'
 import { Address } from 'cluster'
 import { BigNumber, Bytes, BytesLike } from 'ethers'
@@ -209,7 +209,7 @@ describe('ZapV5', function () {
     const ret: any[] = []
     let inputAmount = minAmountsParams.inputAmount
     if (nativeZap) {
-      ret.push(await getWrapData(inputAmount))
+      ret.push(await getWrapData(inputAmount, ADDRESS_TWO))
       inputAmount = 0
     }
     if (minAmountsParams.path0.length >= 1 || minAmountsParams.path1.length >= 1) {
@@ -233,13 +233,13 @@ describe('ZapV5', function () {
     return ret
   }
 
-  async function getWrapData(inputAmount: number) {
+  async function getWrapData(inputAmount: number, to: string) {
     const { zapContract, router } = await loadFixture(deployDexAndZap)
     const maxNative = 1
     if (BigNumber.from(inputAmount) > ether(maxNative.toString())) {
       throw Error('SafeNet. Sending too much native for testing. limit set at: ' + maxNative.toString())
     }
-    const populatedTx = await zapContract.populateTransaction.wrapNative(inputAmount, { value: inputAmount })
+    const populatedTx = await zapContract.populateTransaction.wrapNative(inputAmount, to, { value: inputAmount })
     return populatedTx.data
   }
 

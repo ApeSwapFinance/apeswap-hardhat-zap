@@ -21,7 +21,7 @@ abstract contract ApeSwapZapTBills is TransferHelper {
 
     event ZapTBill(zapTBillParams params);
 
-    function zapTBill(zapTBillParams memory params) external {
+    function zapTBill(zapTBillParams memory params) external payable {
         IERC20 inputToken = IERC20(params.bill.principalToken());
         params.inputAmount = _transferIn(inputToken, params.inputAmount);
 

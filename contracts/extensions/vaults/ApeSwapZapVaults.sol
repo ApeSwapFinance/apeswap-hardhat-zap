@@ -20,7 +20,7 @@ abstract contract ApeSwapZapVaults is TransferHelper {
         address recipient;
     }
 
-    function zapVault(zapVaultParams memory params) external {
+    function zapVault(zapVaultParams memory params) external payable {
         IBaseBananaMaximizerStrategy vault = IBaseBananaMaximizerStrategy(
             params.maximizerVaultApe.vaults(params.vaultPid)
         );

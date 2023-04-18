@@ -12,7 +12,7 @@ contract TransferHelper {
     /// @param inputAmount input amount
     function _transferIn(IERC20 token, uint256 inputAmount) internal returns (uint256) {
         if (inputAmount == Constants.CONTRACT_BALANCE) {
-            inputAmount = token.balanceOf(address(this));
+            inputAmount = _getBalance(token);
         } else {
             uint256 balanceBefore = _getBalance(token);
             token.safeTransferFrom(msg.sender, address(this), inputAmount);
@@ -25,9 +25,13 @@ contract TransferHelper {
     /// @param token input token
     /// @param outputAmount output amount
     /// @param recipient transfer tokens to this address
-    function _transferOut(IERC20 token, uint256 outputAmount, address recipient) internal returns (uint256) {
+    function _transferOut(
+        IERC20 token,
+        uint256 outputAmount,
+        address recipient
+    ) internal returns (uint256) {
         if (outputAmount == Constants.CONTRACT_BALANCE) {
-            outputAmount = token.balanceOf(address(this));
+            outputAmount = _getBalance(token);
         }
         if (outputAmount > 0) {
             token.safeTransfer(recipient, outputAmount);
