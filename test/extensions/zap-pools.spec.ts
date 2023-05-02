@@ -3,7 +3,7 @@ import { dex, utils, farmV2 } from '@ape.swap/hardhat-test-helpers'
 import { mine, time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import { ethers } from 'hardhat'
-import { deployDexAndZap } from '../fixtures/deployDexAndZap'
+import { deployDexAndZapFull } from '../fixtures'
 
 const ether = utils.ether
 
@@ -13,7 +13,7 @@ async function getFactories(_ethers: typeof ethers) {
 }
 
 async function fixture() {
-  const dexAndZap = await deployDexAndZap(ethers)
+  const dexAndZap = await deployDexAndZapFull(ethers)
   const factories = await getFactories(ethers)
   return { ...dexAndZap, factories }
 }

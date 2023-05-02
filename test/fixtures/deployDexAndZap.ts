@@ -1,8 +1,25 @@
 import { ethers } from 'hardhat'
 import { dex, utils } from '@ape.swap/hardhat-test-helpers'
+import { ApeSwapZapExtendedV0, ApeSwapZapFullV1, IApePair } from '../../typechain-types'
+import { Contract } from 'ethers'
 const ether = utils.ether
 
-export async function deployDexAndZap(_ethers: typeof ethers) {
+type ZapContractName = 'ApeSwapZapFullV1' | 'ApeSwapZapExtendedV0'
+type ZapContractType<C> = C extends 'ApeSwapZapFullV1'
+  ? ApeSwapZapFullV1
+  : C extends 'ApeSwapZapExtendedV0'
+  ? ApeSwapZapExtendedV0
+  : never
+
+export async function deployDexAndZapExtended(_ethers: typeof ethers) {
+  return await deployDexAndZap(_ethers, 'ApeSwapZapExtendedV0')
+}
+
+export async function deployDexAndZapFull(_ethers: typeof ethers) {
+  return await deployDexAndZap(_ethers, 'ApeSwapZapFullV1')
+}
+
+async function deployDexAndZap<Zap extends ZapContractName>(_ethers: typeof ethers, zapImplementation: Zap) {
   const [owner, feeTo, alice] = await _ethers.getSigners()
 
   /**
@@ -56,6 +73,13 @@ export async function deployDexAndZap(_ethers: typeof ethers) {
     .connect(owner)
     .addLiquidity(banana.address, busd.address, ether('1000'), ether('1000'), 0, 0, owner.address, '9999999999')
 
+  const lpPairs = (await Promise.all([
+    dexFactory.getPair(banana.address, bitcoin.address).then((pair) => _ethers.getContractAt('IApePair', pair)),
+    dexFactory.getPair(banana.address, ethereum.address).then((pair) => _ethers.getContractAt('IApePair', pair)),
+    dexFactory.getPair(bitcoin.address, ethereum.address).then((pair) => _ethers.getContractAt('IApePair', pair)),
+    dexFactory.getPair(banana.address, busd.address).then((pair) => _ethers.getContractAt('IApePair', pair)),
+  ])) as IApePair[]
+
   /**
    * GNANA Treasury Creation + Funding
    */
@@ -67,8 +91,16 @@ export async function deployDexAndZap(_ethers: typeof ethers) {
   /**
    * Zap Contract deployment and approval
    */
-  const ApeSwapZap__factory = await _ethers.getContractFactory('ApeSwapZapFullV1')
-  const zapContract = await ApeSwapZap__factory.deploy(dexRouter.address, Treasury.address)
+  let zapContract: ZapContractType<Zap>
+  if (zapImplementation == 'ApeSwapZapFullV1') {
+    const ApeSwapZap__factory = await _ethers.getContractFactory('ApeSwapZapFullV1')
+    zapContract = (await ApeSwapZap__factory.deploy(dexRouter.address, Treasury.address)) as ZapContractType<Zap>
+  } else if (zapImplementation == 'ApeSwapZapExtendedV0') {
+    const ApeSwapZap__factory = await _ethers.getContractFactory('ApeSwapZapExtendedV0')
+    zapContract = (await ApeSwapZap__factory.deploy(dexRouter.address)) as ZapContractType<Zap>
+  } else {
+    throw new Error(`${deployDexAndZap.name}:: Invalid Zap Implementation`)
+  }
 
   await banana.connect(alice).approve(zapContract.address, ether('1000'))
   await bitcoin.connect(alice).approve(zapContract.address, ether('1000'))
@@ -87,5 +119,6 @@ export async function deployDexAndZap(_ethers: typeof ethers) {
     gnana,
     signers: { owner, feeTo, alice },
     otherDex,
+    lpPairs,
   }
 }

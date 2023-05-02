@@ -15,7 +15,7 @@ abstract contract ApeSwapZapMiniApeV2 is ApeSwapZap {
     /// @notice Zap token into miniApev2 style dual farm
     /// @param inputToken Input token to zap
     /// @param inputAmount Amount of input tokens to zap
-    /// @param underlyingTokens Tokens of LP to zap to
+    /// @param lpTokens Tokens of LP to zap to
     /// @param path0 Path from input token to LP token0
     /// @param path1 Path from input token to LP token1
     /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
@@ -26,7 +26,7 @@ abstract contract ApeSwapZapMiniApeV2 is ApeSwapZap {
     function zapMiniApeV2(
         IERC20 inputToken,
         uint256 inputAmount,
-        address[] memory underlyingTokens, //[token0, token1]
+        address[] memory lpTokens, //[tokenA, tokenB]
         address[] calldata path0,
         address[] calldata path1,
         uint256[] memory minAmountsSwap, //[A, B]
@@ -35,23 +35,21 @@ abstract contract ApeSwapZapMiniApeV2 is ApeSwapZap {
         IMiniApeV2 miniApe,
         uint256 pid
     ) external nonReentrant {
-        IApePair pair = IApePair(miniApe.lpToken(pid));
-        require(
-            (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
-                (underlyingTokens[1] == pair.token0() && underlyingTokens[0] == pair.token1()),
-            "ApeSwapZap: Wrong LP pair for MiniApe"
-        );
-
-        _zapInternal(
-            inputToken,
-            inputAmount,
-            underlyingTokens,
-            path0,
-            path1,
-            minAmountsSwap,
-            minAmountsLP,
-            address(this),
-            deadline
+        IApePair pair = _validateMiniApeV2Zap(lpTokens, miniApe, pid);
+        inputAmount = _transferIn(inputToken, inputAmount);
+        _zap(
+            ZapParams({
+                inputToken: inputToken,
+                inputAmount: inputAmount,
+                lpTokens: lpTokens,
+                path0: path0,
+                path1: path1,
+                minAmountsSwap: minAmountsSwap,
+                minAmountsLP: minAmountsLP,
+                to: address(this),
+                deadline: deadline
+            }),
+            false
         );
 
         uint256 balance = pair.balanceOf(address(this));
@@ -62,7 +60,7 @@ abstract contract ApeSwapZapMiniApeV2 is ApeSwapZap {
     }
 
     /// @notice Zap native into miniApev2 style dual farm
-    /// @param underlyingTokens Tokens of LP to zap to
+    /// @param lpTokens Tokens of LP to zap to
     /// @param path0 Path from input token to LP token0
     /// @param path1 Path from input token to LP token1
     /// @param minAmountsSwap The minimum amount of output tokens that must be received for swap
@@ -71,7 +69,7 @@ abstract contract ApeSwapZapMiniApeV2 is ApeSwapZap {
     /// @param miniApe The main dualfarm contract
     /// @param pid Dual Farm pid
     function zapMiniApeV2Native(
-        address[] memory underlyingTokens, //[token0, token1]
+        address[] memory lpTokens, //[tokenA, tokenB]
         address[] calldata path0,
         address[] calldata path1,
         uint256[] memory minAmountsSwap, //[A, B]
@@ -80,19 +78,42 @@ abstract contract ApeSwapZapMiniApeV2 is ApeSwapZap {
         IMiniApeV2 miniApe,
         uint256 pid
     ) external payable nonReentrant {
-        IApePair pair = IApePair(miniApe.lpToken(pid));
-        require(
-            (underlyingTokens[0] == pair.token0() && underlyingTokens[1] == pair.token1()) ||
-                (underlyingTokens[1] == pair.token0() && underlyingTokens[0] == pair.token1()),
-            "ApeSwapZap: Wrong LP pair for Dual Farm"
+        (IERC20 weth, uint256 inputAmount) = _wrapNative();
+        _zap(
+            ZapParams({
+                inputToken: weth,
+                inputAmount: inputAmount,
+                lpTokens: lpTokens,
+                path0: path0,
+                path1: path1,
+                minAmountsSwap: minAmountsSwap,
+                minAmountsLP: minAmountsLP,
+                to: address(this),
+                deadline: deadline
+            }),
+            true
         );
 
-        _zapNativeInternal(underlyingTokens, path0, path1, minAmountsSwap, minAmountsLP, address(this), deadline);
-
+        IApePair pair = _validateMiniApeV2Zap(lpTokens, miniApe, pid);
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(miniApe), balance);
         miniApe.deposit(pid, balance, msg.sender);
         pair.approve(address(miniApe), 0);
         emit ZapMiniApeV2Native(msg.value, pid);
+    }
+
+    /** PRIVATE FUNCTIONs **/
+
+    function _validateMiniApeV2Zap(
+        address[] memory lpTokens,
+        IMiniApeV2 miniApe,
+        uint256 pid
+    ) private view returns (IApePair pair) {
+        pair = IApePair(miniApe.lpToken(pid));
+        require(
+            (lpTokens[0] == pair.token0() && lpTokens[1] == pair.token1()) ||
+                (lpTokens[1] == pair.token0() && lpTokens[0] == pair.token1()),
+            "ApeSwapZapMiniApeV2: Wrong LP pair for Dual Farm"
+        );
     }
 }

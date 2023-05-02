@@ -12,56 +12,7 @@ import { Task, Verifier, Network } from './hardhat'
 import { getEnv, Logger, logger, testRunner } from './hardhat/utils'
 import solhintConfig from './solhint.config'
 import '@openzeppelin/hardhat-upgrades'
-
-/**
- * Deploy contracts based on a directory ID in tasks/
- *
- * `npx hardhat deploy --id <task-id> --network <network-name> [--key <apiKey> --force --verbose]`
- */
-task('deploy', '🫶 Run deployment task')
-  .addParam('id', 'Deployment task ID')
-  .addFlag('force', 'Ignore previous deployments')
-  .addOptionalParam('key', 'Etherscan API key to verify contracts')
-  .setAction(
-    async (args: { id: string; force?: boolean; key?: string; verbose?: boolean }, hre: HardhatRuntimeEnvironment) => {
-      Logger.setDefaults(false, args.verbose || false)
-      const key = parseApiKey(hre.network.name as Network, args.key)
-      const verifier = key ? new Verifier(hre.network, key) : undefined
-      await Task.fromHRE(args.id, hre, verifier).run(args)
-    }
-  )
-
-/**
- * Verify contracts based on a directory ID in tasks/
- *
- * eg: `npx hardhat verify-contract --id <task-id> --network <network-name> --name <contract-name>
- *  [--address <contract-address> --args <constructor-args --key <apiKey> --force --verbose]`
- */
-task('verify-contract', '🫶 Run verification for a given contract')
-  .addParam('id', 'Deployment task ID')
-  .addParam('name', 'Contract name')
-  .addOptionalParam('address', 'Contract address')
-  .addOptionalParam('args', 'ABI-encoded constructor arguments')
-  .addOptionalParam('key', 'Etherscan API key to verify contracts')
-  .setAction(
-    async (
-      args: {
-        id: string
-        name: string
-        address?: string
-        key?: string
-        args?: string
-        verbose?: boolean
-      },
-      hre: HardhatRuntimeEnvironment
-    ) => {
-      Logger.setDefaults(false, args.verbose || false)
-      const key = parseApiKey(hre.network.name as Network, args.key)
-      const verifier = key ? new Verifier(hre.network, key) : undefined
-
-      await Task.fromHRE(args.id, hre, verifier).verify(args.name, args.address, args.args)
-    }
-  )
+import '@nomiclabs/hardhat-etherscan'
 
 task('print-tasks', '🫶 Prints available tasks in tasks/ directory').setAction(async (args: { verbose?: boolean }) => {
   Logger.setDefaults(false, args.verbose || false)
@@ -138,6 +89,14 @@ const networkConfig: Record<Network, NetworkUserConfigExtended> = {
     },
   },
   bsc: {
+    url: getEnv('BSC_RPC_URL') || 'https://bsc-dataseed1.binance.org',
+    getExplorerUrl: (address: string) => `https://bscscan.com/address/${address}`,
+    chainId: 56,
+    accounts: {
+      mnemonic: mainnetMnemonic,
+    },
+  },
+  bscDummy: {
     url: getEnv('BSC_RPC_URL') || 'https://bsc-dataseed1.binance.org',
     getExplorerUrl: (address: string) => `https://bscscan.com/address/${address}`,
     chainId: 56,
@@ -236,7 +195,7 @@ const config: HardhatUserConfig = {
   typechain: {
     // outDir: 'src/types', // defaults to './typechain-types/'
     target: 'ethers-v5',
-    // externalArtifacts: [], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
+    externalArtifacts: ['./contracts/extensions/bills/lib/**.json'], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
     alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
     dontOverrideCompile: false, // defaults to false
   },
@@ -250,45 +209,16 @@ const config: HardhatUserConfig = {
     // except: [':ERC20$'], // Array of String matchers used to exclude contracts
     // outputFile: './contract-size.md', // Optional output file to write to
   },
-  // etherscan: {
-  /**
-   * // NOTE This is valid in the latest version of "@nomiclabs/hardhat-etherscan.
-   *  This version breaks the src/task.ts file which hasn't been refactored yet
-   */
-  // apiKey: {
-  //   mainnet: getEnv('ETHERSCAN_API_KEY'),
-  //   optimisticEthereum: getEnv('OPTIMISTIC_ETHERSCAN_API_KEY'),
-  //   arbitrumOne: getEnv('ARBISCAN_API_KEY'),
-  //   bsc: getEnv('BSCSCAN_API_KEY'),
-  //   bscTestnet: getEnv('BSCSCAN_API_KEY'),
-  //   polygon: getEnv('POLYGONSCAN_API_KEY'),
-  //   polygonTestnet: getEnv('POLYGONSCAN_API_KEY'),
-  // },
-  // },
-}
-
-const parseApiKey = (network: Network, key?: string): string | undefined => {
-  return key || verificationConfig.etherscan.apiKey[network]
-}
-
-/**
- * Placeholder configuration for @nomiclabs/hardhat-etherscan to store verification API urls
- */
-const verificationConfig: { etherscan: { apiKey: Record<Network, string> } } = {
+  // https://github.com/NomicFoundation/hardhat/tree/main/packages/hardhat-etherscan
   etherscan: {
     apiKey: {
-      hardhat: 'NO_API_KEY',
       mainnet: getEnv('ETHERSCAN_API_KEY'),
-      goerli: getEnv('ETHERSCAN_API_KEY'),
-      arbitrum: getEnv('ARBITRUM_API_KEY'),
-      arbitrumGoerli: getEnv('ARBITRUM_API_KEY'),
+      optimisticEthereum: getEnv('OPTIMISTIC_ETHERSCAN_API_KEY'),
+      arbitrumOne: getEnv('ARBISCAN_API_KEY'),
       bsc: getEnv('BSCSCAN_API_KEY'),
       bscTestnet: getEnv('BSCSCAN_API_KEY'),
       polygon: getEnv('POLYGONSCAN_API_KEY'),
       polygonTestnet: getEnv('POLYGONSCAN_API_KEY'),
-      // NOTE: I don't believe TELOS verification is supported
-      telos: getEnv('TELOSSCAN_API_KEY'),
-      telosTestnet: getEnv('TELOSSCAN_API_KEY_API_KEY'),
     },
   },
 }

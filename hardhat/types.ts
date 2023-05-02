@@ -10,6 +10,7 @@ export const NETWORKS = <const>[
   'arbitrum',
   'arbitrumGoerli',
   'bsc',
+  'bscDummy',
   'bscTestnet',
   'polygon',
   'polygonTestnet',

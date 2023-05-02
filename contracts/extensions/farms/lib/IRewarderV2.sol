@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
 /*
@@ -14,56 +14,33 @@ pragma solidity ^0.8.0;
          | ▓▓                                             | ▓▓      
          | ▓▓                                             | ▓▓      
           \▓▓                                              \▓▓         
-
- * App:             https://apeswap.finance
+ * App:             https://ApeSwap.finance
  * Medium:          https://ape-swap.medium.com
  * Twitter:         https://twitter.com/ape_swap
- * Discord:         https://discord.com/invite/apeswap
  * Telegram:        https://t.me/ape_swap
  * Announcements:   https://t.me/ape_swap_news
+ * Reddit:          https://reddit.com/r/ApeSwap
+ * Instagram:       https://instagram.com/ApeSwap.finance
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface IApeSwapZap {
-    struct ZapParams {
-        IERC20 inputToken;
-        uint256 inputAmount;
-        address[] lpTokens; // [token0, token1]
-        address[] path0;
-        address[] path1;
-        uint256[] minAmountsSwap; // [A, B]
-        uint256[] minAmountsLP; // [amountAMin, amountBMin]
-        address to;
-        uint256 deadline;
-    }
-
-    function zap(
-        IERC20 inputToken,
-        uint256 inputAmount,
-        address[] memory lpTokens, //[token0, token1]
-        address[] calldata path0,
-        address[] calldata path1,
-        uint256[] memory minAmountsSwap, //[A, B]
-        uint256[] memory minAmountsLP, //[amountAMin, amountBMin]
-        address to,
-        uint256 deadline
+interface IRewarderV2 {
+    /// @dev even if not all parameters are currently used in this implementation they help future proofing it
+    function onReward(
+        uint256 _pid,
+        address _user,
+        address _to,
+        uint256 _pending,
+        uint256 _stakedAmount,
+        uint256 _lpSupply
     ) external;
 
-    function zapNative(
-        address[] memory lpTokens, //[token0, token1]
-        address[] calldata path0,
-        address[] calldata path1,
-        uint256[] memory minAmountsSwap, //[A, B]
-        uint256[] memory minAmountsLP, //[amountAMin, amountBMin]
-        address to,
-        uint256 deadline
-    ) external payable;
-
-    function getMinAmounts(
-        uint256 inputAmount,
-        address[] calldata path0,
-        address[] calldata path1
-    ) external view returns (uint256[2] memory minAmountsSwap, uint256[2] memory minAmountsLP);
+    /// @dev passing stakedAmount here helps future proofing the interface
+    function pendingTokens(
+        uint256 pid,
+        address user,
+        uint256 amount
+    ) external view returns (IERC20[] memory, uint256[] memory);
 }
