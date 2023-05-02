@@ -223,7 +223,7 @@ contract ApeSwapZap is TransferHelper, IApeSwapZap, ReentrancyGuard {
         vars.amount1 = zapParams.inputAmount / 2;
         if (zapParams.lpTokens[1] != address(zapParams.inputToken)) {
             uint256 path1Length = zapParams.path1.length;
-            require(path1Length > 0, "ApeSwapZap: path0 is required for this operation");
+            require(path1Length > 0, "ApeSwapZap: path1 is required for this operation");
             require(zapParams.path1[0] == address(zapParams.inputToken), "ApeSwapZap: wrong path path1[0]");
             require(zapParams.path1[path1Length - 1] == zapParams.lpTokens[1], "ApeSwapZap: wrong path path1[-1]");
             vars.amount1 = _routerSwap(

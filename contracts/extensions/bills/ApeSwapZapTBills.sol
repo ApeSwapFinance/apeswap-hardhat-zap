@@ -195,7 +195,7 @@ abstract contract ApeSwapZapTBills is ApeSwapZap {
         require(
             (lpTokens[0] == principalToken.token0() && lpTokens[1] == principalToken.token1()) ||
                 (lpTokens[1] == principalToken.token0() && lpTokens[0] == principalToken.token1()),
-            "ApeSwapZap: Wrong LP pair for TBill"
+            "ApeSwapZapTBills: Wrong LP pair for TBill"
         );
     }
 }

@@ -113,7 +113,7 @@ abstract contract ApeSwapZapMiniApeV2 is ApeSwapZap {
         require(
             (lpTokens[0] == pair.token0() && lpTokens[1] == pair.token1()) ||
                 (lpTokens[1] == pair.token0() && lpTokens[0] == pair.token1()),
-            "ApeSwapZap: Wrong LP pair for Dual Farm"
+            "ApeSwapZapMiniApeV2: Wrong LP pair for Dual Farm"
         );
     }
 }
