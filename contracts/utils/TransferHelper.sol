@@ -31,6 +31,7 @@ contract TransferHelper {
         address recipient
     ) internal returns (uint256) {
         if (outputAmount == Constants.CONTRACT_BALANCE) {
+            /// @dev Returns balance in contract. Does not transfer tokens out.
             outputAmount = _getBalance(token);
         }
         if (outputAmount > 0) {

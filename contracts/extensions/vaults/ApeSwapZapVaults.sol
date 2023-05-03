@@ -11,14 +11,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 abstract contract ApeSwapZapVaults is TransferHelper {
     using SafeERC20 for IERC20;
 
-    event ZapVault(IERC20 inputToken, uint256 inputAmount, uint256 vaultPid);
-
     struct zapVaultParams {
         uint256 inputAmount;
         IMaximizerVaultApe maximizerVaultApe;
         uint256 vaultPid;
         address recipient;
     }
+
+    event ZapVault(IERC20 inputToken, uint256 inputAmount, uint256 vaultPid);
 
     function zapVault(zapVaultParams memory params) external payable {
         IBaseBananaMaximizerStrategy vault = IBaseBananaMaximizerStrategy(

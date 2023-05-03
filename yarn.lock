@@ -14,10 +14,10 @@
     "@openzeppelin/contracts-v0.7" "npm:@openzeppelin/contracts@^3.4.2"
     underscore "^1.12.1"
 
-"@ape.swap/hardhat-test-helpers@0.6.4-alpha.0":
-  version "0.6.4-alpha.0"
-  resolved "https://registry.yarnpkg.com/@ape.swap/hardhat-test-helpers/-/hardhat-test-helpers-0.6.4-alpha.0.tgz#307b6ffe26b1da1f3e591be2cb655003d6eca609"
-  integrity sha512-r2zgEeAOUx0L8B32ynPwUtkKxTq52s8aZgIEglZ4lBPESEMTi5hqFGAtgYgkxQn2fW+Dt1hN0RjK+aW6qC2p+g==
+"@ape.swap/hardhat-test-helpers@0.6.6-alpha.0":
+  version "0.6.6-alpha.0"
+  resolved "https://registry.yarnpkg.com/@ape.swap/hardhat-test-helpers/-/hardhat-test-helpers-0.6.6-alpha.0.tgz#9c5e5803911373491937dbc8f7462394f74f9b5e"
+  integrity sha512-59k4gPQGQUbr18puKVthQJoL39g/VRCjiZtM7stn/3tckBSVgVkWD4fJkybAZQVtnAcMIxI2KNbHjZ3vawR4SQ==
   dependencies:
     "@openzeppelin/contracts" "^4.7.3"
     "@openzeppelin/contracts-upgradeable" "^4.7.3"
@@ -1163,6 +1163,17 @@
     "@uniswap/v3-core" "1.0.0"
     base64-sol "1.0.1"
     hardhat-watcher "^2.1.1"
+
+"@uniswap/v3-periphery@^1.4.3":
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/@uniswap/v3-periphery/-/v3-periphery-1.4.3.tgz#a6da4632dbd46b139cc13a410e4ec09ad22bd19f"
+  integrity sha512-80c+wtVzl5JJT8UQskxVYYG3oZb4pkhY0zDe0ab/RX4+8f9+W5d8wI4BT0wLB0wFQTSnbW+QdBSpkHA/vRyGBA==
+  dependencies:
+    "@openzeppelin/contracts" "3.4.2-solc-0.7"
+    "@uniswap/lib" "^4.0.1-alpha"
+    "@uniswap/v2-core" "1.0.1"
+    "@uniswap/v3-core" "1.0.0"
+    base64-sol "1.0.1"
 
 "@vue/compiler-sfc@2.7.14":
   version "2.7.14"

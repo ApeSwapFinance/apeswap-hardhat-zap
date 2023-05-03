@@ -11,15 +11,15 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 abstract contract ApeSwapZapPools is TransferHelper {
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable BANANA;
-    IERC20 public immutable GNANA;
-    ITreasury public immutable GNANA_TREASURY; // Golden Banana Treasury
-
     struct ZapPoolParams {
         uint256 inputAmount;
         IBEP20RewardApeV5 pool;
         address recipient;
     }
+
+    IERC20 public immutable BANANA;
+    IERC20 public immutable GNANA;
+    ITreasury public immutable GNANA_TREASURY; // Golden Banana Treasury
 
     event ZapPool(ZapPoolParams params);
 

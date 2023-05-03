@@ -50,8 +50,8 @@ contract ApeSwapZapFullV5 is
     ApeSwapZapLending,
     Multicall
 {
-    constructor(IWETH WNative, ITreasury goldenBananaTreasury)
-        WrapNative(WNative)
+    constructor(IWETH wNative, ITreasury goldenBananaTreasury)
+        WrapNative(wNative)
         ApeSwapZapPools(goldenBananaTreasury)
     {}
 }

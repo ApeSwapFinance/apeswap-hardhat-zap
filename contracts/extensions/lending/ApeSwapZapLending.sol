@@ -26,7 +26,7 @@ abstract contract ApeSwapZapLending is TransferHelper {
         IERC20 underlyingToken = IERC20(market.underlying());
 
         if (address(underlyingToken) == LENDING_NATIVE_UNDERLYING) {
-            uint256 depositAmount = inputAmount == 0 ? address(this).balance : inputAmount;
+            uint256 depositAmount = inputAmount == Constants.CONTRACT_BALANCE ? address(this).balance : inputAmount;
             market.mint{value: depositAmount}();
         } else {
             inputAmount = _transferIn(underlyingToken, inputAmount);

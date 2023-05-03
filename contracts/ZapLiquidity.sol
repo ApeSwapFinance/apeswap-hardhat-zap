@@ -37,11 +37,6 @@ import "./utils/TransferHelper.sol";
 contract ZapLiquidity is TransferHelper {
     using SafeERC20 for IERC20;
 
-    event AddLiquidityV2(AddLiquidityV2Params params);
-    event RemoveLiquidityV2(RemoveLiquidityV2Params params);
-    event AddLiquidityV3(AddLiquidityV3Params params);
-    event AddLiquidityArrakis(AddLiquidityArrakisParams params);
-
     struct AddLiquidityV2Params {
         address lpRouter;
         address token0;
@@ -92,6 +87,11 @@ contract ZapLiquidity is TransferHelper {
         uint256 deadline;
         address arrakisFactory;
     }
+
+    event AddLiquidityV2(AddLiquidityV2Params params);
+    event RemoveLiquidityV2(RemoveLiquidityV2Params params);
+    event AddLiquidityV3(AddLiquidityV3Params params);
+    event AddLiquidityArrakis(AddLiquidityArrakisParams params);
 
     function addLiquidityV2(AddLiquidityV2Params memory params)
         external

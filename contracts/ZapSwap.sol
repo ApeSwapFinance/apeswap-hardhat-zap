@@ -31,12 +31,8 @@ import "./utils/TransferHelper.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "hardhat/console.sol";
-
 contract ZapSwap is TransferHelper, ReentrancyGuard {
     using SafeERC20 for IERC20;
-
-    event Swap(SwapParams params);
 
     enum SwapType2 {
         MultiSwapRouter
@@ -51,6 +47,8 @@ contract ZapSwap is TransferHelper, ReentrancyGuard {
         address to;
         uint256 deadline;
     }
+
+    event Swap(SwapParams params);
 
     /// @notice Zap single token to LP
     /// @param params all parameters for zap
