@@ -7,7 +7,7 @@ import fs from 'fs'
 /**
  * This class is used to deploy contracts, verify them and save the deployment details to a file.
  *
- * // TODO: This class could use more logging support
+ * // TODO: This class could use more logging support (might be solved in hardhat-template)
  */
 export class DeployManager {
   contracts: {
@@ -17,14 +17,17 @@ export class DeployManager {
     constructorArguments: any[]
   }[] = []
 
-  async deployContractFromFactory<C extends ContractFactory>(contract: C, params: Parameters<C['deploy']>) {
+  async deployContractFromFactory<C extends ContractFactory>(
+    contract: C,
+    params: Parameters<C['deploy']>,
+    contractName?: string
+  ) {
     const contractInstance = await contract.deploy(...params)
     const encodedConstructorArgs = contractInstance.interface.encodeDeploy(params)
     await contractInstance.deployed()
 
     const deployDetails = {
-      // TODO: This doesn't provide a readable name
-      name: contract.toString(),
+      name: contractName || 'Contract',
       address: contractInstance.address,
       encodedConstructorArgs,
       constructorArguments: params,
