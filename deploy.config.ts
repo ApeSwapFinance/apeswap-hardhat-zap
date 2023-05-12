@@ -12,6 +12,7 @@ export type DeployedNetworks = Extract<Network, 'bsc' | 'bscTestnet' | 'polygon'
 // Contract deployment interface
 export interface ZapDeployConfig {
   zapArtifact: string
+  args?: any[]
   apeRouterAddress: string
   goldenBananaTreasury: string
   maximizerVaultApe: string
@@ -36,7 +37,8 @@ export const getDeployConfig = (network: Network, signers?: SignerWithAddress[])
 const contractDeployConfigs: Record<DeployedNetworks, ZapDeployConfig> = {
   bsc: {
     // zapArtifact: 'ApeSwapZapBSCV1',
-    zapArtifact: 'ApeSwapZapBSC_Lend_MAV2',
+    zapArtifact: 'ApeSwapZapBSCStakingV0',
+    args: ['0xcF0feBd3f17CEf5b47b0cD257aCf6025c5BFf3b7', '0xec4b9d1fd8A3534E31fcE1636c7479BcD29213aE'], // router, gnana treasury
     apeRouterAddress: '0xcF0feBd3f17CEf5b47b0cD257aCf6025c5BFf3b7',
     goldenBananaTreasury: '0xec4b9d1fd8A3534E31fcE1636c7479BcD29213aE',
     maximizerVaultApe: '',
@@ -52,7 +54,8 @@ const contractDeployConfigs: Record<DeployedNetworks, ZapDeployConfig> = {
     factoryContracts: [],
   },
   polygon: {
-    zapArtifact: 'ApeSwapZapFullV3',
+    zapArtifact: 'ApeSwapZapPolygonV0',
+    args: ['0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607'], // router
     apeRouterAddress: '0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607',
     goldenBananaTreasury: '0xbC5ed0829365a0d5bc3A4956A6A0549aE17f41Ab',
     maximizerVaultApe: '0x',

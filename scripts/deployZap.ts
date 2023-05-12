@@ -1,7 +1,7 @@
 import { ContractFactory } from 'ethers'
 import { ethers, network, run } from 'hardhat'
 import { DeployedNetworks, getDeployConfig } from '../deploy.config'
-import { ApeSwapZapExtendedV0__factory, ApeSwapZap__factory } from '../typechain-types'
+import { ApeSwapZapExtendedV0__factory, ApeSwapZapExtendedV1__factory, ApeSwapZap__factory } from '../typechain-types'
 import { DeployManager } from './DeployManager'
 
 /**
@@ -13,17 +13,11 @@ async function main() {
   const deployManager = new DeployManager()
   const currentNetwork = network.name as DeployedNetworks
   const accounts = await ethers.getSigners()
-  let { apeRouterAddress, goldenBananaTreasury, zapArtifact } = getDeployConfig(currentNetwork, accounts)
+  let { apeRouterAddress, goldenBananaTreasury, zapArtifact, args } = getDeployConfig(currentNetwork, accounts)
 
-  const ApeSwapZapExtendedV0_Factory = (await ethers.getContractFactory(
-    'ApeSwapZapExtendedV0'
-  )) as ApeSwapZapExtendedV0__factory
+  const ApeSwapZap_Factory = await ethers.getContractFactory(zapArtifact)
 
-  await deployManager.deployContractFromFactory(ApeSwapZapExtendedV0_Factory, [apeRouterAddress])
-
-  const ApeSwapZap_factory = (await ethers.getContractFactory('ApeSwapZap')) as ApeSwapZap__factory
-
-  await deployManager.deployContractFromFactory(ApeSwapZap_factory, [apeRouterAddress])
+  await deployManager.deployContractFromFactory(ApeSwapZap_Factory, args || [], zapArtifact)
 
   const output = {
     ...deployManager.contracts,
