@@ -28,6 +28,8 @@ pragma solidity 0.8.15;
 import "../interfaces/IArrakisPool.sol";
 import "../interfaces/IApeRouter02.sol";
 import "../interfaces/IArrakisFactoryV1.sol";
+import "../interfaces/IGammaHypervisor.sol";
+import "../interfaces/IGammaUniProxy.sol";
 import "../lens/ZapAnalyzer.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -48,6 +50,7 @@ library MathHelper {
         ZapAnalyzer.SwapPath[] path0;
         ZapAnalyzer.SwapPath[] path1;
         address uniV3Factory;
+        address gammaHypervisor;
     }
 
     struct SwapRatioLocalVars {
@@ -55,7 +58,6 @@ library MathHelper {
         uint256 underlying1;
         uint256 token0decimals;
         uint256 token1decimals;
-        uint256 weightedPrice0;
         uint256 weightedPrice1;
         uint256 percentage0;
         uint256 percentage1;
@@ -94,7 +96,8 @@ library MathHelper {
             swapRatioParams.token1,
             swapRatioParams.fee,
             swapRatioParams.tickLower,
-            swapRatioParams.tickUpper
+            swapRatioParams.tickUpper,
+            swapRatioParams.gammaHypervisor
         );
 
         vars.token0decimals = ERC20(address(swapRatioParams.token0)).decimals();
@@ -102,9 +105,6 @@ library MathHelper {
         vars.underlying0 = _normalizeTokenDecimals(vars.underlying0, vars.token0decimals);
         vars.underlying1 = _normalizeTokenDecimals(vars.underlying1, vars.token1decimals);
 
-        vars.weightedPrice0 = swapRatioParams.inputToken == swapRatioParams.token0
-            ? 1e18
-            : getWeightedPrice(swapRatioParams.path0);
         vars.weightedPrice1 = swapRatioParams.inputToken == swapRatioParams.token1
             ? 1e18
             : getWeightedPrice(swapRatioParams.path1);
@@ -126,17 +126,27 @@ library MathHelper {
         address token1,
         uint24 fee,
         int24 tickLower,
-        int24 tickUpper
+        int24 tickUpper,
+        address gammaHypervisor
     ) internal view returns (uint256 amount0, uint256 amount1) {
-        uint160 lowPrice = TickMath.getSqrtRatioAtTick(tickLower);
-        (uint160 currentPrice, , , , , , ) = IUniswapV3Pool(
-            IUniswapV3Factory(uniV3Factory).getPool(token0, token1, fee)
-        ).slot0();
-        uint160 highPrice = TickMath.getSqrtRatioAtTick(tickUpper);
-        uint256 intermediate = FullMath.mulDiv(currentPrice, highPrice, FixedPoint96.Q96);
-        uint128 liquidity = toUint128(FullMath.mulDiv(1e18, intermediate, highPrice - currentPrice));
-        amount0 = 1e18;
-        amount1 = FullMath.mulDivRoundingUp(liquidity, currentPrice - lowPrice, FixedPoint96.Q96);
+        if (uniV3Factory != address(0)) {
+            uint160 lowPrice = TickMath.getSqrtRatioAtTick(tickLower);
+            (uint160 currentPrice, , , , , , ) = IUniswapV3Pool(
+                IUniswapV3Factory(uniV3Factory).getPool(token0, token1, fee)
+            ).slot0();
+            uint160 highPrice = TickMath.getSqrtRatioAtTick(tickUpper);
+            uint256 intermediate = FullMath.mulDiv(currentPrice, highPrice, FixedPoint96.Q96);
+            uint128 liquidity = toUint128(FullMath.mulDiv(1e18, intermediate, highPrice - currentPrice));
+            amount0 = 1e18;
+            amount1 = FullMath.mulDivRoundingUp(liquidity, currentPrice - lowPrice, FixedPoint96.Q96);
+        } else if (gammaHypervisor != address(0)) {
+            (uint256 amountStart, uint256 amountEnd) = UniProxy(Hypervisor(gammaHypervisor).whitelistedAddress())
+                .getDepositAmount(gammaHypervisor, token0, 1e18);
+            amount0 = 1e18;
+            amount1 = (amountStart + amountEnd) / 2;
+        } else {
+            revert("RF");
+        }
     }
 
     /// @notice Normalize token decimals to 18

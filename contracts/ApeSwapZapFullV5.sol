@@ -35,11 +35,10 @@ import "./extensions/pools/libraries/ITreasury.sol";
 import "./extensions/vaults/ApeSwapZapVaults.sol";
 import "./extensions/lending/ApeSwapZapLending.sol";
 import "./lens/ZapAnalyzer.sol";
-import "./libraries/Multicall.sol";
+import "./utils/Multicall.sol";
 import "./interfaces/IWETH.sol";
 
 contract ApeSwapZapFullV5 is
-    ZapAnalyzer,
     WrapNative,
     ZapSwap,
     ZapLiquidity,
@@ -50,8 +49,21 @@ contract ApeSwapZapFullV5 is
     ApeSwapZapLending,
     Multicall
 {
-    constructor(IWETH wNative, ITreasury goldenBananaTreasury)
-        WrapNative(wNative)
-        ApeSwapZapPools(goldenBananaTreasury)
-    {}
+    ZapAnalyzer public zapAnalyzer;
+
+    constructor(
+        IWETH wNative,
+        ITreasury goldenBananaTreasury,
+        address _zapAnalyzer
+    ) WrapNative(wNative) ApeSwapZapPools(goldenBananaTreasury) {
+        zapAnalyzer = ZapAnalyzer(_zapAnalyzer);
+    }
+
+    function estimateSwapReturns(ZapAnalyzer.SwapReturnsParams memory params)
+        external
+        view
+        returns (ZapAnalyzer.SwapReturns memory returnValues)
+    {
+        return zapAnalyzer.estimateSwapReturns(params);
+    }
 }

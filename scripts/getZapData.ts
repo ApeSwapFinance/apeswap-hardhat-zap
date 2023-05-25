@@ -4,7 +4,7 @@ import { ether } from '@ape.swap/hardhat-test-helpers/dist/src/utils'
 
 /// ADDRESSES FOR POLYGON
 
-const zapAddress = '0xA35b2c2bAA77F213ECF6eAa02e734Cfe9480ba55'
+const zapAddress = '0x3e8b26E2A9Cb8E08bAdaA6bb69Ed98A2421CF361'
 const routerAddress = '0x98CB749270aBF8002E8B52CF65e0B0e0b0532071'
 const APEV2 = '0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607'
 const QUICKV2 = '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff'
@@ -13,6 +13,8 @@ const APEPosManager = '0x0927a5abbD02eD73ba83fC93Bd9900B1C2E52348'
 const UNIV3 = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
 const UNIPosManager = '0xC36442b4a4522E871399CD717aBDD847Ab11FE88'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+const gammaMaticWeth = '0x81Cec323BF8C4164c66ec066F53cc053A535f03D'
 
 const WMATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'
 const DAI = '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063'
@@ -32,14 +34,7 @@ async function main() {
   const swapPath00 = {
     swapRouter: QUICKV2,
     swapType: SwapType.V2,
-    path: [WMATIC, USDT],
-    uniV3PoolFees: [],
-  }
-
-  const swapPath01 = {
-    swapRouter: QUICKV2,
-    swapType: SwapType.V2,
-    path: [USDT, USDC],
+    path: [WMATIC, WETH],
     uniV3PoolFees: [],
   }
 
@@ -50,30 +45,23 @@ async function main() {
     uniV3PoolFees: [],
   }
 
-  const swapPath11 = {
-    swapRouter: APEV2,
-    swapType: SwapType.V2,
-    path: [WETH, BANANA],
-    uniV3PoolFees: [],
-  }
-
   const liquidityPath = {
-    lpRouter: APEV2,
-    liquidityType: LPType.V2,
-    tickLower: -276240,
-    tickUpper: -272220,
-    uniV3PoolLPFee: 3000,
+    lpRouter: gammaMaticWeth,
+    liquidityType: LPType.Gamma,
+    tickLower: 0, //-276240,
+    tickUpper: 0, //-272220,
+    uniV3PoolLPFee: 0, //3000,
     arrakisFactory: ZERO_ADDRESS,
   }
 
   const minAmountsParams = {
     inputAmount: ether('0.01').toString(),
-    path0: [swapPath00, swapPath01],
-    path1: [swapPath10, swapPath11],
+    path0: [],
+    path1: [swapPath10],
     liquidityPath: liquidityPath,
   }
 
-  const liquidityAdder = APEV2
+  const liquidityAdder = gammaMaticWeth
   const nativeZap = true
 
   console.log(JSON.stringify(minAmountsParams))
@@ -105,6 +93,7 @@ const LPType = {
   V2: 0,
   V3: 1,
   Arrakis: 2,
+  Gamma: 3,
 }
 
 async function getZapData(
@@ -136,7 +125,7 @@ async function getZapData(
   let inputAmount = minAmountsParams.inputAmount
   console.log('wrap')
   if (nativeZap) {
-    ret.push(await getWrapData(inputAmount))
+    ret.push(await getWrapData(inputAmount, zapContract.address))
     inputAmount = 0
   }
   console.log('zap')
@@ -162,12 +151,14 @@ async function getZapData(
   return ret
 }
 
-async function getWrapData(inputAmount: number) {
+async function getWrapData(inputAmount: number, to: string) {
   const maxNative = 1
   if (BigNumber.from(inputAmount) > ether(maxNative.toString())) {
     throw Error('SafeNet. Sending too much native for testing. limit set at: ' + maxNative.toString())
   }
-  const populatedTx = await zapContract.populateTransaction.wrapNative(inputAmount, { value: inputAmount })
+  const populatedTx = await zapContract.populateTransaction.wrapNative(inputAmount, to, {
+    value: inputAmount,
+  })
   return populatedTx.data
 }
 
@@ -276,6 +267,7 @@ async function getLPData(
     if (ethers.utils.isBytesLike(populatedTx.data)) {
       return populatedTx.data
     }
+    console.log('!!! Probably failed liquidity tx !!!')
     return '0x'
   } else if (lptype == LPType.V3) {
     const params = {
@@ -296,8 +288,24 @@ async function getLPData(
     if (ethers.utils.isBytesLike(populatedTx.data)) {
       return populatedTx.data
     }
+    console.log('!!! Probably failed liquidity tx !!!')
     return '0x'
+  } else if (lptype == LPType.Gamma) {
+    const params = {
+      hypervisor: liquidityAdder,
+      token0: token0,
+      token1: token1,
+      amount0Desired: amount0,
+      amount1Desired: amount1,
+      recipient: to,
+      inMin: [0, 0, 0, 0],
+    }
+    const populatedTx = await zapContract.populateTransaction.addLiquidityGamma(params)
+    if (ethers.utils.isBytesLike(populatedTx.data)) {
+      return populatedTx.data
+    }
   }
+  console.log('!!! Probably failed liquidity tx !!!')
   return '0x'
 }
 

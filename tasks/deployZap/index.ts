@@ -7,6 +7,7 @@ function getTimestampInSeconds(offset = 0) {
 
 export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise<void> => {
   const input = task.input() as DeploymentInputs
-  const args = [input.WNATIVE, input.GNANATreasury]
+  const analyzer = await task.deployAndVerify('ZapAnalyzer', [], from, force)
+  const args = [input.WNATIVE, input.GNANATreasury, analyzer.address]
   await task.deployAndVerify('ApeSwapZapFullV5', args, from, force)
 }

@@ -28,8 +28,9 @@ pragma solidity 0.8.15;
 import "./interfaces/IArrakisRouter.sol";
 import "./interfaces/IArrakisPool.sol";
 import "./interfaces/INonfungiblePositionManager.sol";
-import "./interfaces/IApeFactory.sol";
 import "./interfaces/IApePair.sol";
+import "./interfaces/IGammaUniProxy.sol";
+import "./interfaces/IGammaHypervisor.sol";
 import "./libraries/Constants.sol";
 import "./libraries/MathHelper.sol";
 import "./utils/TransferHelper.sol";
@@ -88,10 +89,29 @@ contract ZapLiquidity is TransferHelper {
         address arrakisFactory;
     }
 
+    struct AddLiquidityGammaParams {
+        address hypervisor;
+        address token0;
+        address token1;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        address recipient;
+        uint256[4] inMin;
+    }
+
+    struct RemoveLiquidityGammaParams {
+        address hypervisor;
+        uint256 shares;
+        address recipient;
+        uint256[4] minAmounts;
+    }
+
     event AddLiquidityV2(AddLiquidityV2Params params);
     event RemoveLiquidityV2(RemoveLiquidityV2Params params);
     event AddLiquidityV3(AddLiquidityV3Params params);
     event AddLiquidityArrakis(AddLiquidityArrakisParams params);
+    event AddLiquidityGamma(AddLiquidityGammaParams params);
+    event RemoveLiquidityGamma(RemoveLiquidityGammaParams params);
 
     function addLiquidityV2(AddLiquidityV2Params memory params)
         external
@@ -223,5 +243,47 @@ contract ZapLiquidity is TransferHelper {
         _transferOut(IERC20(params.token0), Constants.CONTRACT_BALANCE, msg.sender);
         _transferOut(IERC20(params.token1), Constants.CONTRACT_BALANCE, msg.sender);
         emit AddLiquidityArrakis(params);
+    }
+
+    function addLiquidityGamma(AddLiquidityGammaParams memory params) external payable returns (uint256 shares) {
+        params.amount0Desired = _transferIn(IERC20(params.token0), params.amount0Desired);
+        params.amount1Desired = _transferIn(IERC20(params.token1), params.amount1Desired);
+
+        IERC20(params.token0).approve(address(params.hypervisor), params.amount0Desired);
+        IERC20(params.token1).approve(address(params.hypervisor), params.amount1Desired);
+
+        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
+        else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
+
+        shares = UniProxy(Hypervisor(params.hypervisor).whitelistedAddress()).deposit(
+            params.amount0Desired,
+            params.amount1Desired,
+            params.recipient,
+            params.hypervisor,
+            params.inMin
+        );
+
+        _transferOut(IERC20(params.hypervisor), Constants.CONTRACT_BALANCE, params.recipient);
+        _transferOut(IERC20(params.token0), Constants.CONTRACT_BALANCE, msg.sender);
+        _transferOut(IERC20(params.token1), Constants.CONTRACT_BALANCE, msg.sender);
+        emit AddLiquidityGamma(params);
+    }
+
+    function removeLiquidityGamma(RemoveLiquidityGammaParams memory params)
+        external
+        payable
+        returns (uint256 amount0, uint256 amount1)
+    {
+        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
+        else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
+
+        (amount0, amount1) = Hypervisor(params.hypervisor).withdraw(
+            params.shares,
+            params.recipient,
+            msg.sender,
+            params.minAmounts
+        );
+
+        emit RemoveLiquidityGamma(params);
     }
 }

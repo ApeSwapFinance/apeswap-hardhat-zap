@@ -48,7 +48,8 @@ contract ZapAnalyzer {
     enum LiquidityType {
         V2,
         V3,
-        Arrakis
+        Arrakis,
+        Gamma
     }
 
     struct LiquidityPath {
@@ -72,20 +73,12 @@ contract ZapAnalyzer {
         uint256 swapToToken1;
         uint256 minAmountSwap0;
         uint256 minAmountSwap1;
-        uint256 minAmountLP0;
-        uint256 minAmountLP1;
     }
 
     struct minAmountsLocalVars {
-        uint256 inputAmountHalf;
-        IApeFactory factory;
         address token0;
         address token1;
         address inputToken;
-        uint256 amount0;
-        uint256 amount1;
-        uint256 reserveA;
-        uint256 reserveB;
         address uniV3Pool;
         address arrakisPool;
         uint256 weightedPrice0;
@@ -114,6 +107,7 @@ contract ZapAnalyzer {
             returnValues.swapToToken0 = params.inputAmount / 2;
             returnValues.swapToToken1 = params.inputAmount / 2;
         } else if (params.liquidityPath.liquidityType == LiquidityType.V3) {
+            //V3 swap amounts
             MathHelper.SwapRatioParams memory swapRatioParams = MathHelper.SwapRatioParams({
                 inputToken: vars.inputToken,
                 inputAmount: params.inputAmount,
@@ -124,10 +118,12 @@ contract ZapAnalyzer {
                 fee: params.liquidityPath.uniV3PoolLPFee,
                 tickLower: params.liquidityPath.tickLower,
                 tickUpper: params.liquidityPath.tickUpper,
-                uniV3Factory: params.liquidityPath.lpRouter
+                uniV3Factory: params.liquidityPath.lpRouter,
+                gammaHypervisor: address(0)
             });
             (returnValues.swapToToken0, returnValues.swapToToken1) = MathHelper.getSwapRatio(swapRatioParams);
         } else if (params.liquidityPath.liquidityType == LiquidityType.Arrakis) {
+            //Arrakis swap amounts
             vars.uniV3Pool = IUniswapV3Factory(IArrakisRouter(params.liquidityPath.lpRouter).factory()).getPool(
                 vars.token0,
                 vars.token1,
@@ -147,7 +143,24 @@ contract ZapAnalyzer {
                 fee: params.liquidityPath.uniV3PoolLPFee,
                 tickLower: IArrakisPool(vars.arrakisPool).lowerTick(),
                 tickUpper: IArrakisPool(vars.arrakisPool).upperTick(),
-                uniV3Factory: IArrakisRouter(params.liquidityPath.lpRouter).factory()
+                uniV3Factory: IArrakisRouter(params.liquidityPath.lpRouter).factory(),
+                gammaHypervisor: address(0)
+            });
+            (returnValues.swapToToken0, returnValues.swapToToken1) = MathHelper.getSwapRatio(swapRatioParams);
+        } else if (params.liquidityPath.liquidityType == LiquidityType.Gamma) {
+            //Gamma swap amounts
+            MathHelper.SwapRatioParams memory swapRatioParams = MathHelper.SwapRatioParams({
+                inputToken: vars.inputToken,
+                inputAmount: params.inputAmount,
+                token0: vars.token0,
+                token1: vars.token1,
+                path0: params.path0,
+                path1: params.path1,
+                fee: 0,
+                tickLower: 0,
+                tickUpper: 0,
+                uniV3Factory: address(0),
+                gammaHypervisor: params.liquidityPath.lpRouter
             });
             (returnValues.swapToToken0, returnValues.swapToToken1) = MathHelper.getSwapRatio(swapRatioParams);
         }
@@ -155,9 +168,7 @@ contract ZapAnalyzer {
         vars.weightedPrice0 = vars.inputToken == vars.token0 ? 1e18 : MathHelper.getWeightedPrice(params.path0);
         vars.weightedPrice1 = vars.inputToken == vars.token1 ? 1e18 : MathHelper.getWeightedPrice(params.path1);
         returnValues.minAmountSwap0 = (returnValues.swapToToken0 * vars.weightedPrice0) / 1e18;
-        returnValues.minAmountLP0 = returnValues.minAmountSwap0;
         returnValues.minAmountSwap1 = (returnValues.swapToToken1 * vars.weightedPrice1) / 1e18;
-        returnValues.minAmountLP1 = returnValues.minAmountSwap1;
 
         return returnValues;
     }
