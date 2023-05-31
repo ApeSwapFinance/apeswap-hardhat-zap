@@ -25,16 +25,16 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./ZapSwap.sol";
-import "./ZapLiquidity.sol";
 import "./WrapNative.sol";
+import "./extensions/swap/ZapSwap.sol";
+import "./extensions/liquidity/ZapLiquidity.sol";
 import "./extensions/bills/ApeSwapZapTBills.sol";
 import "./extensions/farms/ApeSwapZapMiniApeV2.sol";
 import "./extensions/pools/ApeSwapZapPools.sol";
 import "./extensions/pools/libraries/ITreasury.sol";
 import "./extensions/vaults/ApeSwapZapVaults.sol";
 import "./extensions/lending/ApeSwapZapLending.sol";
-import "./lens/ZapAnalyzer.sol";
+import "./lens/IZapAnalyzer.sol";
 import "./utils/Multicall.sol";
 import "./interfaces/IWETH.sol";
 
@@ -47,22 +47,23 @@ contract ApeSwapZapFullV5 is
     ApeSwapZapPools,
     ApeSwapZapVaults,
     ApeSwapZapLending,
-    Multicall
+    Multicall,
+    IZapAnalyzer
 {
-    ZapAnalyzer public zapAnalyzer;
+    IZapAnalyzer public zapAnalyzer;
 
     constructor(
         IWETH wNative,
         ITreasury goldenBananaTreasury,
-        address _zapAnalyzer
+        IZapAnalyzer _zapAnalyzer
     ) WrapNative(wNative) ApeSwapZapPools(goldenBananaTreasury) {
-        zapAnalyzer = ZapAnalyzer(_zapAnalyzer);
+        zapAnalyzer = _zapAnalyzer;
     }
 
-    function estimateSwapReturns(ZapAnalyzer.SwapReturnsParams memory params)
+    function estimateSwapReturns(IZapAnalyzer.SwapReturnsParams memory params)
         external
         view
-        returns (ZapAnalyzer.SwapReturns memory returnValues)
+        returns (IZapAnalyzer.SwapReturns memory returnValues)
     {
         return zapAnalyzer.estimateSwapReturns(params);
     }
