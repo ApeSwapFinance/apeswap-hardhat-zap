@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.15;
 
-import "../../interfaces/IApePair.sol";
-import "../../interfaces/IMasterApe.sol";
-import "../../interfaces/IApeFactory.sol";
-import "../../interfaces/IPoolManager.sol";
-import "../../interfaces/IBEP20RewardApeV6.sol";
+import "../../extensions/liquidity/features/univ2/lib/IApePair.sol";
+import "../../extensions/liquidity/features/univ2/lib/IApeFactory.sol";
+import "../../extensions/farms/libraries/IMasterApe.sol";
+import "../../extensions/pools/libraries/IBEP20RewardApeV5.sol";
+import "./libraries/IPoolManager.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LPBalanceCheckerBase {
@@ -122,8 +122,8 @@ contract LPBalanceCheckerBase {
                 address[] memory apeSwapJFPools = poolManager.allActivePools();
                 for (uint256 poolId = 0; poolId < apeSwapJFPoolsCount; poolId++) {
                     address lpTokenAddress;
-                    try IBEP20RewardApeV6(apeSwapJFPools[poolId]).STAKE_TOKEN() returns (address _lpTokenAddress) {
-                        lpTokenAddress = _lpTokenAddress;
+                    try IBEP20RewardApeV5(apeSwapJFPools[poolId]).STAKE_TOKEN() returns (IERC20 _lpTokenAddress) {
+                        lpTokenAddress = address(_lpTokenAddress);
                     } catch (bytes memory) {
                         continue;
                     }
