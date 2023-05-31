@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 pragma abicoder v2;
 
-import "./IV2SwapRouter.sol";
-import "./IV3SwapRouter.sol";
+import "../../univ2/lib/IV2SwapRouter.sol";
+import "../../univ3/lib/IV3SwapRouter.sol";
 
 /// @title Uniswap V2 and V3 Swap Router
 interface IApeSwapMultiSwapRouter is IV2SwapRouter, IV3SwapRouter {
