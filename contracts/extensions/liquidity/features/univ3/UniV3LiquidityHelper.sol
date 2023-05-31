@@ -25,45 +25,36 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./interfaces/IApeSwapMultiSwapRouter.sol";
-import "./libraries/Constants.sol";
-import "./utils/TransferHelper.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+import "@uniswap/v3-core/contracts/libraries/FullMath.sol";
+import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
 
-contract ZapSwap is TransferHelper, ReentrancyGuard {
-    using SafeERC20 for IERC20;
-
-    enum SwapType2 {
-        MultiSwapRouter
+library UniV3LiquidityHelper {
+    /// @notice Downcasts uint256 to uint128
+    /// @param x The uint258 to be downcasted
+    /// @return y The passed value, downcasted to uint128
+    function toUint128(uint256 x) private pure returns (uint128 y) {
+        require((y = uint128(x)) == x);
     }
 
-    struct SwapParams {
-        IERC20 inputToken;
-        uint256 inputAmount;
-        SwapType2 swapType;
-        address caller;
-        bytes[] swapData;
-        address to;
-        uint256 deadline;
-    }
-
-    event Swap(SwapParams params);
-
-    /// @notice Zap single token to LP
-    /// @param params all parameters for zap
-    function swap(SwapParams memory params) external payable nonReentrant {
-        require(params.to != address(0), "ZapSwap: Can't zap to null address");
-        require(params.caller != address(0), "ZapSwap: caller can't be null address");
-
-        params.inputAmount = _transferIn(params.inputToken, params.inputAmount);
-        params.inputToken.approve(params.caller, params.inputAmount);
-
-        if (params.swapType == SwapType2.MultiSwapRouter) {
-            IApeSwapMultiSwapRouter(params.caller).multicall(params.swapData);
-        } else {
-            revert("ZapSwap: Swap type not supported");
-        }
-        emit Swap(params);
+    function getLPAddRatio(
+        address uniV3Factory,
+        address token0,
+        address token1,
+        uint24 fee,
+        int24 tickLower,
+        int24 tickUpper
+    ) internal view returns (uint256 amount0, uint256 amount1) {
+        uint160 lowPrice = TickMath.getSqrtRatioAtTick(tickLower);
+        (uint160 currentPrice, , , , , , ) = IUniswapV3Pool(
+            IUniswapV3Factory(uniV3Factory).getPool(token0, token1, fee)
+        ).slot0();
+        uint160 highPrice = TickMath.getSqrtRatioAtTick(tickUpper);
+        uint256 intermediate = FullMath.mulDiv(currentPrice, highPrice, FixedPoint96.Q96);
+        uint128 liquidity = toUint128(FullMath.mulDiv(1e18, intermediate, highPrice - currentPrice));
+        amount0 = 1e18;
+        amount1 = FullMath.mulDivRoundingUp(liquidity, currentPrice - lowPrice, FixedPoint96.Q96);
     }
 }
