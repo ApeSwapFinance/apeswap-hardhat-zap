@@ -25,15 +25,17 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./interfaces/IArrakisRouter.sol";
-import "./interfaces/IArrakisPool.sol";
-import "./interfaces/INonfungiblePositionManager.sol";
-import "./interfaces/IApePair.sol";
-import "./interfaces/IGammaUniProxy.sol";
-import "./interfaces/IGammaHypervisor.sol";
-import "./libraries/Constants.sol";
-import "./libraries/MathHelper.sol";
-import "./utils/TransferHelper.sol";
+import "./features/arrakis/lib/IArrakisRouter.sol";
+import "./features/arrakis/lib/IArrakisPool.sol";
+import "./features/arrakis/ArrakisHelper.sol";
+import "./features/univ3/lib/INonfungiblePositionManager.sol";
+import "./features/univ2/lib/IApePair.sol";
+import "./features/univ2/lib/IV2LiquidityRouter02.sol";
+import "./features/gamma/lib/IGammaUniProxy.sol";
+import "./features/gamma/lib/IGammaHypervisor.sol";
+import "../../libraries/Constants.sol";
+import "../../utils/TransferHelper.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
 contract ZapLiquidity is TransferHelper {
     using SafeERC20 for IERC20;
@@ -51,7 +53,7 @@ contract ZapLiquidity is TransferHelper {
     }
 
     struct RemoveLiquidityV2Params {
-        IApeRouter02 router;
+        IV2LiquidityRouter02 router;
         IApePair lp;
         uint256 amount;
         uint256 amountAMinRemove;
@@ -127,7 +129,7 @@ contract ZapLiquidity is TransferHelper {
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
         else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
 
-        (amount0Lp, amount1Lp, ) = IApeRouter02(params.lpRouter).addLiquidity(
+        (amount0Lp, amount1Lp, ) = IV2LiquidityRouter02(params.lpRouter).addLiquidity(
             params.token0,
             params.token1,
             params.amount0Desired,
@@ -229,7 +231,7 @@ contract ZapLiquidity is TransferHelper {
             params.token1,
             params.fee
         );
-        address arrakisPool = MathHelper.getArrakisPool(uniV3Pool, IArrakisFactoryV1(params.arrakisFactory));
+        address arrakisPool = ArrakisHelper.getArrakisPool(uniV3Pool, IArrakisFactoryV1(params.arrakisFactory));
 
         (amount0Lp, amount1Lp, ) = IArrakisRouter(params.lpRouter).addLiquidity(
             IArrakisPool(arrakisPool),
