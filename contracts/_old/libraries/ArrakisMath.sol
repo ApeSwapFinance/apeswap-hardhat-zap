@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.15;
 
-import "../../interfaces/IArrakisPool.sol";
+import "../../extensions/liquidity/features/arrakis/lib/IArrakisPool.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import "../../interfaces/IApeRouter02.sol";
-import "../../interfaces/IArrakisFactoryV1.sol";
+import "../../extensions/swap/features/univ2/lib/IV2SwapRouter02.sol";
+import "../../extensions/liquidity/features/arrakis/lib/IArrakisFactoryV1.sol";
 
 library ArrakisMath {
     struct SwapRatioParams {
@@ -113,7 +113,7 @@ library ArrakisMath {
         if (uniV3PoolFees.length == 0) {
             uint256 tokenDecimals = getTokenDecimals(path[path.length - 1]);
 
-            uint256[] memory amountsOut0 = IApeRouter02(uniV2Router).getAmountsOut(1e18, path);
+            uint256[] memory amountsOut0 = IV2SwapRouter02(uniV2Router).getAmountsOut(1e18, path);
             weightedPrice = _normalizeTokenDecimals(amountsOut0[amountsOut0.length - 1], tokenDecimals);
         } else {
             for (uint256 index = 0; index < path.length - 1; index++) {
