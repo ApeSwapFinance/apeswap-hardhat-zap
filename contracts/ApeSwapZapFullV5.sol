@@ -59,11 +59,9 @@ contract ApeSwapZapFullV5 is
         zapAnalyzer = ZapAnalyzer(_zapAnalyzer);
     }
 
-    function estimateSwapReturns(ZapAnalyzer.SwapReturnsParams memory params)
-        external
-        view
-        returns (ZapAnalyzer.SwapReturns memory returnValues)
-    {
+    function estimateSwapReturns(
+        ZapAnalyzer.SwapReturnsParams memory params
+    ) external view returns (ZapAnalyzer.SwapReturns memory returnValues) {
         return zapAnalyzer.estimateSwapReturns(params);
     }
 }

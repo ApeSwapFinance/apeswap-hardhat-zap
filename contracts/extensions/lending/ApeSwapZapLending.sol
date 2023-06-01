@@ -18,11 +18,7 @@ abstract contract ApeSwapZapLending is TransferHelper {
     /// @param inputAmount Amount of input tokens to zap
     /// @param market Lending market to deposit to
     /// @param recipient Recipient of cTokens
-    function zapLendingMarket(
-        uint256 inputAmount,
-        ICErc20 market,
-        address recipient
-    ) external payable {
+    function zapLendingMarket(uint256 inputAmount, ICErc20 market, address recipient) external payable {
         IERC20 underlyingToken = IERC20(market.underlying());
 
         if (address(underlyingToken) == LENDING_NATIVE_UNDERLYING) {

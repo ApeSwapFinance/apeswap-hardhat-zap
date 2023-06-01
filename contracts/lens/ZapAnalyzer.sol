@@ -87,11 +87,9 @@ contract ZapAnalyzer {
 
     /// @notice get min amounts for swaps
     /// @param params all params
-    function estimateSwapReturns(SwapReturnsParams memory params)
-        external
-        view
-        returns (SwapReturns memory returnValues)
-    {
+    function estimateSwapReturns(
+        SwapReturnsParams memory params
+    ) external view returns (SwapReturns memory returnValues) {
         minAmountsLocalVars memory vars;
 
         vars.token0 = params.path0.length == 0

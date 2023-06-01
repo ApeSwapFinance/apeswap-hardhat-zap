@@ -83,11 +83,9 @@ library MathHelper {
     /// uniV3PoolFees1 uniV3 pool fees for path1
     /// arrakisPool arrakis pool
     /// uniV3Factory uniV3 factory
-    function getSwapRatio(SwapRatioParams memory swapRatioParams)
-        internal
-        view
-        returns (uint256 amount0, uint256 amount1)
-    {
+    function getSwapRatio(
+        SwapRatioParams memory swapRatioParams
+    ) internal view returns (uint256 amount0, uint256 amount1) {
         SwapRatioLocalVars memory vars;
 
         (vars.underlying0, vars.underlying1) = getLPAddRatio(
@@ -153,7 +151,7 @@ library MathHelper {
     /// @param amount Amount of tokens
     /// @param decimals Decimals of given token amount to scale. MUST be <=18
     function _normalizeTokenDecimals(uint256 amount, uint256 decimals) internal pure returns (uint256) {
-        return amount * 10**(18 - decimals);
+        return amount * 10 ** (18 - decimals);
     }
 
     /// @notice Returns value based on other token
@@ -215,9 +213,9 @@ library MathHelper {
         uint256 token1Decimals = getTokenDecimals(token1);
 
         if (token1 < token0) {
-            price = (2**192) / ((sqrtPriceX96)**2 / uint256(10**(token0Decimals + 18 - token1Decimals)));
+            price = (2 ** 192) / ((sqrtPriceX96) ** 2 / uint256(10 ** (token0Decimals + 18 - token1Decimals)));
         } else {
-            price = ((sqrtPriceX96)**2) / ((2**192) / uint256(10**(token0Decimals + 18 - token1Decimals)));
+            price = ((sqrtPriceX96) ** 2) / ((2 ** 192) / uint256(10 ** (token0Decimals + 18 - token1Decimals)));
         }
     }
 

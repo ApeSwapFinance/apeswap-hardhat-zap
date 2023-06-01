@@ -25,11 +25,7 @@ contract TransferHelper {
     /// @param token input token
     /// @param outputAmount output amount
     /// @param recipient transfer tokens to this address
-    function _transferOut(
-        IERC20 token,
-        uint256 outputAmount,
-        address recipient
-    ) internal returns (uint256) {
+    function _transferOut(IERC20 token, uint256 outputAmount, address recipient) internal returns (uint256) {
         if (outputAmount == Constants.CONTRACT_BALANCE) {
             /// @dev Returns balance in contract. Does not transfer tokens out.
             outputAmount = _getBalance(token);
