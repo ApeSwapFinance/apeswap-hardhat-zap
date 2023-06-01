@@ -6,9 +6,13 @@
         "titleBar.activeForeground": "#F2FEF4"
     },
     "cSpell.words": [
+        "abicoder",
         "ARBISCAN",
         "Arrakis",
+        "deployers",
         "dont",
+        "downcasted",
+        "IBEP",
         "IWETH",
         "mixedcase",
         "nomicfoundation",
@@ -17,6 +21,7 @@
         "Numberish",
         "POLYGONSCAN",
         "precommit",
+        "predeploy",
         "quickswap",
         "telos",
         "TELOSSCAN",
