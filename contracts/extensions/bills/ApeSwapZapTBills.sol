@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "./libraries/ICustomBill.sol";
+import "../swap/features/univ2/lib/IV2SwapRouter02.sol";
+import "../liquidity/features/univ2/lib/IApePair.sol";
 import "../../libraries/Constants.sol";
-import "../../interfaces/IApeRouter02.sol";
-import "../../interfaces/IApePair.sol";
 import "../../utils/TransferHelper.sol";
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";

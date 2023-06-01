@@ -25,53 +25,21 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./extensions/swap/ZapSwap.sol";
-import "./extensions/liquidity/ZapLiquidity.sol";
-import "./WrapNative.sol";
-import "./extensions/bills/ApeSwapZapTBills.sol";
-import "./extensions/farms/ApeSwapZapMiniApeV2.sol";
-import "./extensions/pools/ApeSwapZapPools.sol";
-import "./extensions/pools/libraries/ITreasury.sol";
-import "./extensions/vaults/ApeSwapZapVaults.sol";
-import "./extensions/lending/ApeSwapZapLending.sol";
-import "./lens/ZapAnalyzer.sol";
-import "./utils/Multicall.sol";
-import "./interfaces/IWETH.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-contract ApeSwapZapFullV5 is
-    WrapNative,
-    ZapSwap,
-    ZapLiquidity,
-    ApeSwapZapTBills,
-    ApeSwapZapMiniApeV2,
-    ApeSwapZapPools,
-    ApeSwapZapVaults,
-    ApeSwapZapLending,
-    Multicall
-{
-    /// @dev ZapAnalyzer lens contract for estimating swap returns.
-    IZapAnalyzer public zapAnalyzer;
-
-    constructor(
-        IWETH wNative,
-        ITreasury goldenBananaTreasury,
-        address _zapAnalyzer
-    ) WrapNative(wNative) ApeSwapZapPools(goldenBananaTreasury) {
-        zapAnalyzer = ZapAnalyzer(_zapAnalyzer);
+library TokenHelper {
+    function getTokenDecimals(address token) internal view returns (uint256 decimals) {
+        try IERC20Metadata(token).decimals() returns (uint8 dec) {
+            decimals = dec;
+        } catch {
+            decimals = 18;
+        }
     }
 
-    /**
-     * @dev This function estimates the swap returns based on the given parameters.
-     * @param params The struct containing the necessary parameters for estimating swap returns.
-     *  See {IZapAnalyzer.SwapReturnsParams} for more information.
-     * @return returnValues The struct containing the estimated swap returns.
-     *  See {IZapAnalyzer.SwapReturns} for more information.
-     */
-    function estimateSwapReturns(IZapAnalyzer.SwapReturnsParams memory params)
-        external
-        view
-        returns (IZapAnalyzer.SwapReturns memory returnValues)
-    {
-        return zapAnalyzer.estimateSwapReturns(params);
+    /// @notice Normalize token decimals to 18
+    /// @param amount Amount of tokens
+    /// @param decimals Decimals of given token amount to scale. MUST be <=18
+    function normalizeTokenDecimals(uint256 amount, uint256 decimals) internal pure returns (uint256) {
+        return amount * 10 ** (18 - decimals);
     }
 }

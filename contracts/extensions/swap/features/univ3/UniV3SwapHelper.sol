@@ -25,45 +25,43 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./interfaces/IApeSwapMultiSwapRouter.sol";
-import "./libraries/Constants.sol";
-import "./utils/TransferHelper.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "../../../../utils/TokenHelper.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
-contract ZapSwap is TransferHelper, ReentrancyGuard {
-    using SafeERC20 for IERC20;
+library UniV3SwapHelper {
+    /// @notice Returns value based on other token
+    /// @param token0 initial token
+    /// @param token1 end token that needs value based of token0
+    /// @param fee uniV3 pool fee
+    /// @param uniV3Factory uniV3 factory
+    /// @return price value of token1 based of token0
+    function pairTokensAndValue(
+        address token0,
+        address token1,
+        uint24 fee,
+        address uniV3Factory
+    ) internal view returns (uint256 price) {
+        address tokenPegPair = IUniswapV3Factory(uniV3Factory).getPool(token0, token1, fee);
 
-    enum SwapType2 {
-        MultiSwapRouter
-    }
-
-    struct SwapParams {
-        IERC20 inputToken;
-        uint256 inputAmount;
-        SwapType2 swapType;
-        address caller;
-        bytes[] swapData;
-        address to;
-        uint256 deadline;
-    }
-
-    event Swap(SwapParams params);
-
-    /// @notice Zap single token to LP
-    /// @param params all parameters for zap
-    function swap(SwapParams memory params) external payable nonReentrant {
-        require(params.to != address(0), "ZapSwap: Can't zap to null address");
-        require(params.caller != address(0), "ZapSwap: caller can't be null address");
-
-        params.inputAmount = _transferIn(params.inputToken, params.inputAmount);
-        params.inputToken.approve(params.caller, params.inputAmount);
-
-        if (params.swapType == SwapType2.MultiSwapRouter) {
-            IApeSwapMultiSwapRouter(params.caller).multicall(params.swapData);
-        } else {
-            revert("ZapSwap: Swap type not supported");
+        // if the address has no contract deployed, the pair doesn't exist
+        uint256 size;
+        assembly {
+            size := extcodesize(tokenPegPair)
         }
-        emit Swap(params);
+        require(size != 0, "UniV3 pair not found");
+
+        uint256 sqrtPriceX96;
+
+        (sqrtPriceX96, , , , , , ) = IUniswapV3Pool(tokenPegPair).slot0();
+
+        uint256 token0Decimals = TokenHelper.getTokenDecimals(token0);
+        uint256 token1Decimals = TokenHelper.getTokenDecimals(token1);
+
+        if (token1 < token0) {
+            price = (2**192) / ((sqrtPriceX96)**2 / uint256(10**(token0Decimals + 18 - token1Decimals)));
+        } else {
+            price = ((sqrtPriceX96)**2) / ((2**192) / uint256(10**(token0Decimals + 18 - token1Decimals)));
+        }
     }
 }

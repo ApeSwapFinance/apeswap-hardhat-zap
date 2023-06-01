@@ -25,53 +25,36 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./extensions/swap/ZapSwap.sol";
-import "./extensions/liquidity/ZapLiquidity.sol";
-import "./WrapNative.sol";
-import "./extensions/bills/ApeSwapZapTBills.sol";
-import "./extensions/farms/ApeSwapZapMiniApeV2.sol";
-import "./extensions/pools/ApeSwapZapPools.sol";
-import "./extensions/pools/libraries/ITreasury.sol";
-import "./extensions/vaults/ApeSwapZapVaults.sol";
-import "./extensions/lending/ApeSwapZapLending.sol";
-import "./lens/ZapAnalyzer.sol";
-import "./utils/Multicall.sol";
-import "./interfaces/IWETH.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+import "@uniswap/v3-core/contracts/libraries/FullMath.sol";
+import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
 
-contract ApeSwapZapFullV5 is
-    WrapNative,
-    ZapSwap,
-    ZapLiquidity,
-    ApeSwapZapTBills,
-    ApeSwapZapMiniApeV2,
-    ApeSwapZapPools,
-    ApeSwapZapVaults,
-    ApeSwapZapLending,
-    Multicall
-{
-    /// @dev ZapAnalyzer lens contract for estimating swap returns.
-    IZapAnalyzer public zapAnalyzer;
-
-    constructor(
-        IWETH wNative,
-        ITreasury goldenBananaTreasury,
-        address _zapAnalyzer
-    ) WrapNative(wNative) ApeSwapZapPools(goldenBananaTreasury) {
-        zapAnalyzer = ZapAnalyzer(_zapAnalyzer);
+library UniV3LiquidityHelper {
+    /// @notice Downcasts uint256 to uint128
+    /// @param x The uint258 to be downcasted
+    /// @return y The passed value, downcasted to uint128
+    function toUint128(uint256 x) private pure returns (uint128 y) {
+        require((y = uint128(x)) == x);
     }
 
-    /**
-     * @dev This function estimates the swap returns based on the given parameters.
-     * @param params The struct containing the necessary parameters for estimating swap returns.
-     *  See {IZapAnalyzer.SwapReturnsParams} for more information.
-     * @return returnValues The struct containing the estimated swap returns.
-     *  See {IZapAnalyzer.SwapReturns} for more information.
-     */
-    function estimateSwapReturns(IZapAnalyzer.SwapReturnsParams memory params)
-        external
-        view
-        returns (IZapAnalyzer.SwapReturns memory returnValues)
-    {
-        return zapAnalyzer.estimateSwapReturns(params);
+    function getLPAddRatio(
+        address uniV3Factory,
+        address token0,
+        address token1,
+        uint24 fee,
+        int24 tickLower,
+        int24 tickUpper
+    ) internal view returns (uint256 amount0, uint256 amount1) {
+        uint160 lowPrice = TickMath.getSqrtRatioAtTick(tickLower);
+        (uint160 currentPrice, , , , , , ) = IUniswapV3Pool(
+            IUniswapV3Factory(uniV3Factory).getPool(token0, token1, fee)
+        ).slot0();
+        uint160 highPrice = TickMath.getSqrtRatioAtTick(tickUpper);
+        uint256 intermediate = FullMath.mulDiv(currentPrice, highPrice, FixedPoint96.Q96);
+        uint128 liquidity = toUint128(FullMath.mulDiv(1e18, intermediate, highPrice - currentPrice));
+        amount0 = 1e18;
+        amount1 = FullMath.mulDivRoundingUp(liquidity, currentPrice - lowPrice, FixedPoint96.Q96);
     }
 }
