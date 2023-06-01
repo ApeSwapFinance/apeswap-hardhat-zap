@@ -25,53 +25,45 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./extensions/swap/ZapSwap.sol";
-import "./extensions/liquidity/ZapLiquidity.sol";
-import "./WrapNative.sol";
-import "./extensions/bills/ApeSwapZapTBills.sol";
-import "./extensions/farms/ApeSwapZapMiniApeV2.sol";
-import "./extensions/pools/ApeSwapZapPools.sol";
-import "./extensions/pools/libraries/ITreasury.sol";
-import "./extensions/vaults/ApeSwapZapVaults.sol";
-import "./extensions/lending/ApeSwapZapLending.sol";
-import "./lens/ZapAnalyzer.sol";
-import "./utils/Multicall.sol";
-import "./interfaces/IWETH.sol";
+import "./features/apeswap-ms-router/lib/IApeSwapMultiSwapRouter.sol";
+import "../../libraries/Constants.sol";
+import "../../utils/TransferHelper.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract ApeSwapZapFullV5 is
-    WrapNative,
-    ZapSwap,
-    ZapLiquidity,
-    ApeSwapZapTBills,
-    ApeSwapZapMiniApeV2,
-    ApeSwapZapPools,
-    ApeSwapZapVaults,
-    ApeSwapZapLending,
-    Multicall
-{
-    /// @dev ZapAnalyzer lens contract for estimating swap returns.
-    IZapAnalyzer public zapAnalyzer;
+contract ZapSwap is TransferHelper, ReentrancyGuard {
+    using SafeERC20 for IERC20;
 
-    constructor(
-        IWETH wNative,
-        ITreasury goldenBananaTreasury,
-        address _zapAnalyzer
-    ) WrapNative(wNative) ApeSwapZapPools(goldenBananaTreasury) {
-        zapAnalyzer = ZapAnalyzer(_zapAnalyzer);
+    enum SwapType2 {
+        MultiSwapRouter
     }
 
-    /**
-     * @dev This function estimates the swap returns based on the given parameters.
-     * @param params The struct containing the necessary parameters for estimating swap returns.
-     *  See {IZapAnalyzer.SwapReturnsParams} for more information.
-     * @return returnValues The struct containing the estimated swap returns.
-     *  See {IZapAnalyzer.SwapReturns} for more information.
-     */
-    function estimateSwapReturns(IZapAnalyzer.SwapReturnsParams memory params)
-        external
-        view
-        returns (IZapAnalyzer.SwapReturns memory returnValues)
-    {
-        return zapAnalyzer.estimateSwapReturns(params);
+    struct SwapParams {
+        IERC20 inputToken;
+        uint256 inputAmount;
+        SwapType2 swapType;
+        address caller;
+        bytes[] swapData;
+        address to;
+        uint256 deadline;
+    }
+
+    event Swap(SwapParams params);
+
+    /// @notice Zap single token to LP
+    /// @param params all parameters for zap
+    function swap(SwapParams memory params) external payable nonReentrant {
+        require(params.to != address(0), "ZapSwap: Can't zap to null address");
+        require(params.caller != address(0), "ZapSwap: caller can't be null address");
+
+        params.inputAmount = _transferIn(params.inputToken, params.inputAmount);
+        params.inputToken.approve(params.caller, params.inputAmount);
+
+        if (params.swapType == SwapType2.MultiSwapRouter) {
+            IApeSwapMultiSwapRouter(params.caller).multicall(params.swapData);
+        } else {
+            revert("ZapSwap: Swap type not supported");
+        }
+        emit Swap(params);
     }
 }

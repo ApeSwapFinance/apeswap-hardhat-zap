@@ -25,9 +25,9 @@ pragma solidity 0.8.15;
  */
 
 import "./interfaces/IApeSwapZap.sol";
+import "../extensions/liquidity/features/univ2/lib/IApeFactory.sol";
 import "../interfaces/IApeRouter02.sol";
-import "../interfaces/IApeFactory.sol";
-import "../interfaces/IApePair.sol";
+import "../extensions/liquidity/features/univ2/lib/IApePair.sol";
 import "../interfaces/IWETH.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
@@ -271,7 +271,7 @@ contract ApeSwapZap is IApeSwapZap, ReentrancyGuard {
 
         IERC20(underlyingTokens[0]).approve(address(router), vars.amount0);
         IERC20(underlyingTokens[1]).approve(address(router), vars.amount1);
-        (uint256 amountA, uint256 amountB, ) = router.addLiquidity(
+        (uint256 amountA, uint256 amountB, ) = IApeRouter02(address(router)).addLiquidity(
             underlyingTokens[0],
             underlyingTokens[1],
             vars.amount0,

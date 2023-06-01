@@ -25,53 +25,25 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./extensions/swap/ZapSwap.sol";
-import "./extensions/liquidity/ZapLiquidity.sol";
-import "./WrapNative.sol";
-import "./extensions/bills/ApeSwapZapTBills.sol";
-import "./extensions/farms/ApeSwapZapMiniApeV2.sol";
-import "./extensions/pools/ApeSwapZapPools.sol";
-import "./extensions/pools/libraries/ITreasury.sol";
-import "./extensions/vaults/ApeSwapZapVaults.sol";
-import "./extensions/lending/ApeSwapZapLending.sol";
-import "./lens/ZapAnalyzer.sol";
-import "./utils/Multicall.sol";
-import "./interfaces/IWETH.sol";
+import "./lib/IArrakisPool.sol";
+import "./lib/IArrakisFactoryV1.sol";
 
-contract ApeSwapZapFullV5 is
-    WrapNative,
-    ZapSwap,
-    ZapLiquidity,
-    ApeSwapZapTBills,
-    ApeSwapZapMiniApeV2,
-    ApeSwapZapPools,
-    ApeSwapZapVaults,
-    ApeSwapZapLending,
-    Multicall
-{
-    /// @dev ZapAnalyzer lens contract for estimating swap returns.
-    IZapAnalyzer public zapAnalyzer;
-
-    constructor(
-        IWETH wNative,
-        ITreasury goldenBananaTreasury,
-        address _zapAnalyzer
-    ) WrapNative(wNative) ApeSwapZapPools(goldenBananaTreasury) {
-        zapAnalyzer = ZapAnalyzer(_zapAnalyzer);
-    }
-
-    /**
-     * @dev This function estimates the swap returns based on the given parameters.
-     * @param params The struct containing the necessary parameters for estimating swap returns.
-     *  See {IZapAnalyzer.SwapReturnsParams} for more information.
-     * @return returnValues The struct containing the estimated swap returns.
-     *  See {IZapAnalyzer.SwapReturns} for more information.
-     */
-    function estimateSwapReturns(IZapAnalyzer.SwapReturnsParams memory params)
-        external
-        view
-        returns (IZapAnalyzer.SwapReturns memory returnValues)
-    {
-        return zapAnalyzer.estimateSwapReturns(params);
+library ArrakisHelper {
+    /// @notice get arrakis pool from uniV3 pool
+    /// @param uniV3Pool uniV3 pool
+    /// @param arrakisFactory arrakis factory
+    /// @return pool Arrakis pool
+    function getArrakisPool(address uniV3Pool, IArrakisFactoryV1 arrakisFactory) internal view returns (address) {
+        address[] memory deployers = arrakisFactory.getDeployers();
+        for (uint256 i = 0; i < deployers.length; i++) {
+            address[] memory pools = arrakisFactory.getPools(deployers[i]);
+            for (uint256 n = 0; n < pools.length; n++) {
+                address pool = pools[n];
+                if (address(IArrakisPool(pool).pool()) == uniV3Pool) {
+                    return pool;
+                }
+            }
+        }
+        revert("ArrakisHelper: Arrakis pool not found");
     }
 }

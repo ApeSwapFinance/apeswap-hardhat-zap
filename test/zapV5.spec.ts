@@ -197,16 +197,16 @@ describe('ZapV5', function () {
     LPTo: string
   ): Promise<BytesLike[]> {
     let token0 =
-      minAmountsParams.path0.length == 0
-        ? minAmountsParams.path1[0].path[0]
-        : minAmountsParams.path0[minAmountsParams.path0.length - 1].path[
-            minAmountsParams.path0[minAmountsParams.path0.length - 1].path.length - 1
+      minAmountsParams.swapPath0.length == 0
+        ? minAmountsParams.swapPath1[0].path[0]
+        : minAmountsParams.swapPath0[minAmountsParams.swapPath0.length - 1].path[
+            minAmountsParams.swapPath0[minAmountsParams.swapPath0.length - 1].path.length - 1
           ]
     let token1 =
-      minAmountsParams.path1.length == 0
-        ? minAmountsParams.path0[0].path[0]
-        : minAmountsParams.path1[minAmountsParams.path1.length - 1].path[
-            minAmountsParams.path1[minAmountsParams.path1.length - 1].path.length - 1
+      minAmountsParams.swapPath1.length == 0
+        ? minAmountsParams.swapPath0[0].path[0]
+        : minAmountsParams.swapPath1[minAmountsParams.swapPath1.length - 1].path[
+            minAmountsParams.swapPath1[minAmountsParams.swapPath1.length - 1].path.length - 1
           ]
 
     if (token0 > token1) {
@@ -219,7 +219,7 @@ describe('ZapV5', function () {
       ret.push(await getWrapData(inputAmount, ADDRESS_TWO))
       inputAmount = 0
     }
-    if (minAmountsParams.path0.length >= 1 || minAmountsParams.path1.length >= 1) {
+    if (minAmountsParams.swapPath0.length >= 1 || minAmountsParams.swapPath1.length >= 1) {
       const swap = await getSwapData(minAmountsParams, inputAmount, minAmountsData, zapTo)
       ret.push(swap)
     }
@@ -259,7 +259,9 @@ describe('ZapV5', function () {
     const { zapContract, router } = await loadFixture(deployDexAndZap)
 
     const inputToken =
-      minAmountsParams.path0.length > 0 ? minAmountsParams.path0[0].path[0] : minAmountsParams.path1[0].path[0]
+      minAmountsParams.swapPath0.length > 0
+        ? minAmountsParams.swapPath0[0].path[0]
+        : minAmountsParams.swapPath1[0].path[0]
 
     const fullSwapData: any[] = []
 
@@ -267,7 +269,7 @@ describe('ZapV5', function () {
     for (let n = 0; n < 2; n++) {
       to = router.address
       console.log('zap', n)
-      const fullPath = n == 0 ? minAmountsParams.path0 : minAmountsParams.path1
+      const fullPath = n == 0 ? minAmountsParams.swapPath0 : minAmountsParams.swapPath1
       if (fullPath.length == 0) continue
       let swapAmount = n == 0 ? minAmountsData.swapToToken0 : minAmountsData.swapToToken1
       for (let i = 0; i < fullPath.length; i++) {
@@ -430,8 +432,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [],
-        path1: [swapPath1],
+        swapPath0: [],
+        swapPath1: [swapPath1],
         liquidityPath: liquidityPath,
       }
 
@@ -500,8 +502,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [swapPath0],
-        path1: [swapPath1],
+        swapPath0: [swapPath0],
+        swapPath1: [swapPath1],
         liquidityPath: liquidityPath,
       }
 
@@ -570,8 +572,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [swapPath0],
-        path1: [swapPath1],
+        swapPath0: [swapPath0],
+        swapPath1: [swapPath1],
         liquidityPath: liquidityPath,
       }
 
@@ -640,8 +642,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [swapPath0],
-        path1: [swapPath1],
+        swapPath0: [swapPath0],
+        swapPath1: [swapPath1],
         liquidityPath: liquidityPath,
       }
 
@@ -710,8 +712,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [swapPath0],
-        path1: [swapPath1],
+        swapPath0: [swapPath0],
+        swapPath1: [swapPath1],
         liquidityPath: liquidityPath,
       }
 
@@ -794,8 +796,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [swapPath00, swapPath01, swapPath02],
-        path1: [swapPath10],
+        swapPath0: [swapPath00, swapPath01, swapPath02],
+        swapPath1: [swapPath10],
         liquidityPath: liquidityPath,
       }
 
@@ -878,8 +880,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [swapPath00, swapPath01],
-        path1: [swapPath10, swapPath11],
+        swapPath0: [swapPath00, swapPath01],
+        swapPath1: [swapPath10, swapPath11],
         liquidityPath: liquidityPath,
       }
 
@@ -948,8 +950,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [swapPath00],
-        path1: [swapPath10],
+        swapPath0: [swapPath00],
+        swapPath1: [swapPath10],
         liquidityPath: liquidityPath,
       }
 
@@ -1039,8 +1041,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [swapPath00, swapPath01, swapPath02],
-        path1: [swapPath10, swapPath11],
+        swapPath0: [swapPath00, swapPath01, swapPath02],
+        swapPath1: [swapPath10, swapPath11],
         liquidityPath: liquidityPath,
       }
 
@@ -1106,8 +1108,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [swapPath00],
-        path1: [swapPath10],
+        swapPath0: [swapPath00],
+        swapPath1: [swapPath10],
         liquidityPath: liquidityPath,
       }
 
@@ -1189,8 +1191,8 @@ describe('ZapV5', function () {
 
       const minAmountsParams = {
         inputAmount: ether('1').toString(),
-        path0: [swapPath00, swapPath01, swapPath02],
-        path1: [swapPath10, swapPath11],
+        swapPath0: [swapPath00, swapPath01, swapPath02],
+        swapPath1: [swapPath10, swapPath11],
         liquidityPath: liquidityPath,
       }
 
@@ -1247,8 +1249,8 @@ describe('ZapV5', function () {
 
     const minAmountsParams = {
       inputAmount: ether('1').toString(),
-      path0: [swapPath0],
-      path1: [swapPath1],
+      swapPath0: [swapPath0],
+      swapPath1: [swapPath1],
       liquidityPath: liquidityPath,
     }
 

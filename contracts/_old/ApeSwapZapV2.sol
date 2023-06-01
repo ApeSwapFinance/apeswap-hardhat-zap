@@ -25,13 +25,14 @@ pragma solidity 0.8.15;
  */
 
 import "./interfaces/IApeSwapZapV2.sol";
-import "../interfaces/IApeRouter02.sol";
-import "../interfaces/IApeFactory.sol";
-import "../interfaces/IApePair.sol";
+import "../extensions/swap/features/univ2/lib/IV2SwapRouter02.sol";
+import "../extensions/liquidity/features/univ2/lib/IV2LiquidityRouter02.sol";
+import "../extensions/liquidity/features/univ2/lib/IApeFactory.sol";
+import "../extensions/liquidity/features/univ2/lib/IApePair.sol";
 import "../interfaces/IWETH.sol";
-import "../interfaces/IArrakisRouter.sol";
-import "../interfaces/IArrakisPool.sol";
-import "../interfaces/IArrakisFactoryV1.sol";
+import "../extensions/liquidity/features/arrakis/lib/IArrakisRouter.sol";
+import "../extensions/liquidity/features/arrakis/lib/IArrakisPool.sol";
+import "../extensions/liquidity/features/arrakis/lib/IArrakisFactoryV1.sol";
 import "./libraries/ArrakisMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -121,7 +122,7 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
 
         //get min amounts for swap
         // V2 swap and based on V2 also V3 estimate assuming no arbitrage exists
-        IApeRouter02 router = IApeRouter02(params.path0.swapRouter);
+        IV2SwapRouter02 router = IV2SwapRouter02(params.path0.swapRouter);
         factory = IApeFactory(router.factory());
         vars.inputAmountHalf = params.inputAmount / 2;
         vars.minAmountSwap0 = vars.inputAmountHalf;
@@ -144,7 +145,7 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
             if (vars.token0 == lp.token1()) {
                 (vars.reserveA, vars.reserveB) = (vars.reserveB, vars.reserveA);
             }
-            uint256 amountB = IApeRouter02(params.path0.swapRouter).quote(
+            uint256 amountB = IV2SwapRouter02(params.path0.swapRouter).quote(
                 vars.minAmountSwap0,
                 vars.reserveA,
                 vars.reserveB
@@ -294,7 +295,7 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
         if (zapParams.liquidityPath.lpType == LPType.V2) {
             // Handle UniswapV2 Liquidity
             require(
-                IApeFactory(IApeRouter02(zapParams.liquidityPath.lpRouter).factory()).getPair(
+                IApeFactory(IV2SwapRouter02(zapParams.liquidityPath.lpRouter).factory()).getPair(
                     zapParams.token0,
                     zapParams.token1
                 ) != address(0),
@@ -374,7 +375,7 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
 
         if (zapParams.liquidityPath.lpType == LPType.V2) {
             // Add liquidity to UniswapV2 Pool
-            (vars.amount0Lp, vars.amount1Lp, ) = IApeRouter02(zapParams.liquidityPath.lpRouter).addLiquidity(
+            (vars.amount0Lp, vars.amount1Lp, ) = IV2LiquidityRouter02(zapParams.liquidityPath.lpRouter).addLiquidity(
                 zapParams.token0,
                 zapParams.token1,
                 vars.amount0Out,
@@ -440,7 +441,7 @@ contract ApeSwapZapV2 is IApeSwapZapV2, ReentrancyGuard {
         if (swapType == SwapType.V2) {
             // Perform UniV2 swap
             require(uniV3PoolFees.length == 0, "ApeSwapZap: uniV3PoolFees should be empty on V2 swap");
-            IApeRouter02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), deadline);
+            IV2SwapRouter02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), deadline);
         } else if (swapType == SwapType.V3) {
             // Handle swapping with UNIV3_ROUTER
             require(path.length - 1 == uniV3PoolFees.length, "ApeSwapZap: pool fees don't match path");
