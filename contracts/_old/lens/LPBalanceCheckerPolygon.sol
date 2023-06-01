@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.15;
 
-import "../../interfaces/IApePair.sol";
-import "../../interfaces/IMasterApe.sol";
-import "../../interfaces/IApeFactory.sol";
+import "../../extensions/liquidity/features/univ2/lib/IApePair.sol";
+import "../../extensions/liquidity/features/univ2/lib/IApeFactory.sol";
+import "../../extensions/farms/libraries/IMasterApe.sol";
+import "../../extensions/pools/libraries/BEP20RewardApeV5.sol";
+import "./libraries/IPoolManager.sol";
 import "./libraries/IStakingRewardsFactory.sol";
 import "./libraries/IDualStakingRewardsFactory.sol";
 import "./libraries/IStakingDualRewards.sol";
