@@ -50,6 +50,7 @@ contract ApeSwapZapFullV5 is
     Multicall,
     IZapAnalyzer
 {
+    /// @dev ZapAnalyzer lens contract for estimating swap returns.
     IZapAnalyzer public zapAnalyzer;
 
     constructor(
@@ -60,6 +61,13 @@ contract ApeSwapZapFullV5 is
         zapAnalyzer = _zapAnalyzer;
     }
 
+    /**
+     * @dev This function estimates the swap returns based on the given parameters.
+     * @param params The struct containing the necessary parameters for estimating swap returns.
+     *  See {IZapAnalyzer.SwapReturnsParams} for more information.
+     * @return returnValues The struct containing the estimated swap returns.
+     *  See {IZapAnalyzer.SwapReturns} for more information.
+     */
     function estimateSwapReturns(IZapAnalyzer.SwapReturnsParams memory params)
         external
         view

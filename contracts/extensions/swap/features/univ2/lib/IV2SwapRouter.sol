@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 import "./IV2SwapRouter02.sol";
 
-/// @title Router token swapping functionality
+/// @title Router token swapping functionality interface
 /// @notice Functions for swapping tokens via Uniswap V2
 interface IV2SwapRouter {
     /// @notice Swaps `amountIn` of one token for as much as possible of another token
