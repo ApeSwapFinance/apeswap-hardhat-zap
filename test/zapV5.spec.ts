@@ -14,6 +14,7 @@ import { ADDRESS_ZERO, ADDRESS_ONE, ADDRESS_TWO } from './utils/constants'
 import { StringDecoder } from 'string_decoder'
 import { Address } from 'cluster'
 import { BigNumber, Bytes, BytesLike } from 'ethers'
+import { ApeSwapZapFullV5 } from '../typechain-types'
 
 const ether = utils.ether
 describe('ZapV5', function () {
@@ -30,6 +31,7 @@ describe('ZapV5', function () {
 
   async function deployDexAndZap() {
     const ApeSwapZap__factory = await ethers.getContractFactory('ApeSwapZapFullV5')
+    const ZapAnalyzer__factory = await ethers.getContractFactory('ZapAnalyzer')
     const Treasury__factory = await ethers.getContractFactory('Treasury')
 
     const [owner, feeTo, alice] = await ethers.getSigners()
@@ -143,7 +145,12 @@ describe('ZapV5', function () {
     mintV3Position(DEXV3, v3MintData, bitcoin.address, busd.address, price)
     mintV3Position(DEXV3, v3MintData, ethereum.address, busd.address, price)
 
-    const zapContract = await ApeSwapZap__factory.deploy(DEXV2.mockWBNB.address, ADDRESS_ZERO)
+    const ZapAnalyzer = await ZapAnalyzer__factory.deploy()
+    const zapContract = (await ApeSwapZap__factory.deploy(
+      DEXV2.mockWBNB.address,
+      ADDRESS_ZERO,
+      ZapAnalyzer.address
+    )) as ApeSwapZapFullV5
 
     await banana.connect(alice).approve(zapContract.address, ether('1000'))
     await bitcoin.connect(alice).approve(zapContract.address, ether('1000'))
