@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 pragma abicoder v2;
 
-import './IV2SwapRouter02.sol';
+import "./IV2SwapRouter02.sol";
 
 /// @title Router token swapping functionality
 /// @notice Functions for swapping tokens via Uniswap V2
@@ -46,11 +46,5 @@ interface IV2SwapRouter {
         uint256 amountAMin,
         uint256 amountBMin,
         address to
-    )
-        external
-        returns (
-            uint256 amountA,
-            uint256 amountB,
-            uint256 liquidity
-        );
+    ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
 }
