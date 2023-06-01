@@ -213,7 +213,7 @@ contract ZapAnalyzer is IZapAnalyzer {
         address gammaHypervisor
     ) internal view returns (uint256 amount0, uint256 amount1) {
         if (uniV3Factory != address(0)) {
-            UniV3LiquidityHelper.getLPAddRatio(uniV3Factory, token0, token1, fee, tickLower, tickUpper);
+            (amount0, amount1) = UniV3LiquidityHelper.getLPAddRatio(uniV3Factory, token0, token1, fee, tickLower, tickUpper);
         } else if (gammaHypervisor != address(0)) {
             (uint256 amountStart, uint256 amountEnd) = UniProxy(Hypervisor(gammaHypervisor).whitelistedAddress())
                 .getDepositAmount(gammaHypervisor, token0, 1e18);
