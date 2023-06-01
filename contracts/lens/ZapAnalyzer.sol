@@ -52,8 +52,13 @@ contract ZapAnalyzer is IZapAnalyzer {
         uint256 weightedPrice1;
     }
 
-    /// @notice get min amounts for swaps
-    /// @param params all params
+    /**
+     * @dev This function estimates the swap returns based on the given parameters.
+     * @param params The struct containing the necessary parameters for estimating swap returns.
+     *  See {SwapReturnsParams} for more information.
+     * @return returnValues The struct containing the estimated swap returns.
+     *  See {SwapReturns} for more information.
+     */
     function estimateSwapReturns(
         SwapReturnsParams memory params
     ) external view override returns (SwapReturns memory returnValues) {
