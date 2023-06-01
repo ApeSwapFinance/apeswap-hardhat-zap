@@ -4,7 +4,8 @@ pragma solidity ^0.8.0;
 interface IZapAnalyzer {
     enum SwapType {
         V2,
-        V3
+        V3,
+        ALGEBRA
     }
 
     struct SwapPath {
