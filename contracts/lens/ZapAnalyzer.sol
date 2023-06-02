@@ -33,13 +33,15 @@ import "../extensions/liquidity/features/arrakis/lib/IArrakisFactoryV1.sol";
 import "../extensions/liquidity/features/arrakis/ArrakisHelper.sol";
 import "../extensions/liquidity/features/gamma/lib/IGammaHypervisor.sol";
 import "../extensions/liquidity/features/gamma/lib/IGammaUniProxy.sol";
+import "../extensions/swap/features/algebra/lib/IAlgebraFactory.sol";
+import "../extensions/swap/features/algebra/lib/IAlgebraPool.sol";
+import "../extensions/swap/features/algebra/AlgebraSwapHelper.sol";
 import "../extensions/swap/features/univ2/lib/IV2SwapRouter02.sol";
 import "../extensions/swap/features/univ3/UniV3SwapHelper.sol";
 import "../utils/TokenHelper.sol";
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
 
 contract ZapAnalyzer is IZapAnalyzer {
     struct minAmountsLocalVars {
@@ -218,7 +220,14 @@ contract ZapAnalyzer is IZapAnalyzer {
         address gammaHypervisor
     ) internal view returns (uint256 amount0, uint256 amount1) {
         if (uniV3Factory != address(0)) {
-            (amount0, amount1) = UniV3LiquidityHelper.getLPAddRatio(uniV3Factory, token0, token1, fee, tickLower, tickUpper);
+            (amount0, amount1) = UniV3LiquidityHelper.getLPAddRatio(
+                uniV3Factory,
+                token0,
+                token1,
+                fee,
+                tickLower,
+                tickUpper
+            );
         } else if (gammaHypervisor != address(0)) {
             (uint256 amountStart, uint256 amountEnd) = UniProxy(Hypervisor(gammaHypervisor).whitelistedAddress())
                 .getDepositAmount(gammaHypervisor, token0, 1e18);
@@ -252,6 +261,17 @@ contract ZapAnalyzer is IZapAnalyzer {
                                 path.path[index],
                                 path.path[index + 1],
                                 path.uniV3PoolFees[index],
+                                path.swapRouter
+                            )) /
+                        1e18;
+                }
+            } else if (path.swapType == SwapType.ALGEBRA) {
+                for (uint256 index = 0; index < path.path.length - 1; index++) {
+                    weightedPrice =
+                        (weightedPrice *
+                            AlgebraSwapHelper.pairTokensAndValue(
+                                path.path[index],
+                                path.path[index + 1],
                                 path.swapRouter
                             )) /
                         1e18;

@@ -4,10 +4,11 @@ import { ether } from '@ape.swap/hardhat-test-helpers/dist/src/utils'
 
 /// ADDRESSES FOR POLYGON
 
-const zapAddress = '0x3e8b26E2A9Cb8E08bAdaA6bb69Ed98A2421CF361'
-const routerAddress = '0x98CB749270aBF8002E8B52CF65e0B0e0b0532071'
+const zapAddress = '0xA4CCfD308b21C2d09C6545C83Dfb6D2B70Ecc53f'
+const routerAddress = '0xd2bFAfeE6cA102D8cdBF561249c442071Bb2cFC1' //'0x98CB749270aBF8002E8B52CF65e0B0e0b0532071'
 const APEV2 = '0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607'
 const QUICKV2 = '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff'
+const QUICKV3 = '0x411b0fAcC3489691f28ad58c47006AF5E3Ab3A28' //ALGEBRA (NO REAL V3)
 const APEV3 = '0x7Bc382DdC5928964D7af60e7e2f6299A1eA6F48d'
 const APEPosManager = '0x0927a5abbD02eD73ba83fC93Bd9900B1C2E52348'
 const UNIV3 = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
@@ -39,8 +40,8 @@ async function main() {
   }
 
   const swapPath10 = {
-    swapRouter: APEV2,
-    swapType: SwapType.V2,
+    swapRouter: QUICKV3,
+    swapType: SwapType.ALGEBRA,
     path: [WMATIC, WETH],
     uniV3PoolFees: [],
   }
@@ -79,7 +80,7 @@ async function main() {
   console.log(populatedTx)
   await zapContract.multicall(populatedTx, {
     value: nativeZap ? minAmountsParams.inputAmount : '0',
-    gasPrice: 150000000000,
+    gasPrice: 190000000000,
   })
   console.log('DONE')
 }
@@ -87,6 +88,7 @@ async function main() {
 const SwapType = {
   V2: 0,
   V3: 1,
+  ALGEBRA: 2,
 }
 
 const LPType = {
@@ -204,6 +206,19 @@ async function getSwapData(
           amountOutMinimum: 0,
         }
         swapPopulatedTx = await router.populateTransaction.exactInput(ExactInput)
+      } else if (path.swapType == SwapType.ALGEBRA) {
+        const bytesPath = pathToBytesPathAlgebra(path.path)
+        const ExactInput = {
+          factory: path.swapRouter,
+          path: bytesPath,
+          recipient: to,
+          deadline: '9999999999',
+          amountIn: swapAmount,
+          amountOutMinimum: 0,
+        }
+        swapPopulatedTx = await router.populateTransaction.exactInputAlgebra(ExactInput)
+      } else {
+        throw Error('SWAP TYPE NOT SUPPORTED')
       }
 
       fullSwapData.push(swapPopulatedTx.data)
@@ -224,6 +239,14 @@ async function getSwapData(
     return populatedTx.data
   }
   return '0x'
+}
+
+function pathToBytesPathAlgebra(path: string[]) {
+  let retString = '0x'
+  for (let index = 0; index < path.length; index++) {
+    retString += path[index].substring(2)
+  }
+  return retString
 }
 
 function pathToBytesPath(path: string[], fees: number[]) {

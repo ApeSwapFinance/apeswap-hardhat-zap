@@ -25,51 +25,41 @@ pragma solidity 0.8.15;
  * GitHub:          https://github.com/ApeSwapFinance
  */
 
-import "./extensions/swap/ZapSwap.sol";
-import "./extensions/liquidity/ZapLiquidity.sol";
-import "./WrapNative.sol";
-import "./extensions/bills/ApeSwapZapTBills.sol";
-import "./extensions/farms/ApeSwapZapMiniApeV2.sol";
-import "./extensions/pools/ApeSwapZapPools.sol";
-import "./extensions/pools/libraries/ITreasury.sol";
-import "./extensions/vaults/ApeSwapZapVaults.sol";
-import "./extensions/lending/ApeSwapZapLending.sol";
-import "./lens/ZapAnalyzer.sol";
-import "./utils/Multicall.sol";
-import "./interfaces/IWETH.sol";
+import "../../../../utils/TokenHelper.sol";
+import "./lib/IAlgebraFactory.sol";
+import "./lib/IAlgebraPool.sol";
 
-contract ApeSwapZapFullV5 is
-    WrapNative,
-    ZapSwap,
-    ZapLiquidity,
-    ApeSwapZapTBills,
-    ApeSwapZapMiniApeV2,
-    ApeSwapZapPools,
-    ApeSwapZapVaults,
-    ApeSwapZapLending,
-    Multicall
-{
-    /// @dev ZapAnalyzer lens contract for estimating swap returns.
-    IZapAnalyzer public zapAnalyzer;
+library AlgebraSwapHelper {
+    /// @notice Returns value based on other token
+    /// @param token0 initial token
+    /// @param token1 end token that needs value based of token0
+    /// @param uniV3Factory uniV3 factory
+    /// @return price value of token1 based of token0
+    function pairTokensAndValue(
+        address token0,
+        address token1,
+        address uniV3Factory
+    ) internal view returns (uint256 price) {
+        address tokenPegPair = IAlgebraFactory(uniV3Factory).poolByPair(token0, token1);
 
-    constructor(
-        IWETH wNative,
-        ITreasury goldenBananaTreasury,
-        address _zapAnalyzer
-    ) WrapNative(wNative) ApeSwapZapPools(goldenBananaTreasury) {
-        zapAnalyzer = ZapAnalyzer(_zapAnalyzer);
-    }
+        // if the address has no contract deployed, the pair doesn't exist
+        uint256 size;
+        assembly {
+            size := extcodesize(tokenPegPair)
+        }
+        require(size != 0, "UniV3 pair not found");
 
-    /**
-     * @dev This function estimates the swap returns based on the given parameters.
-     * @param params The struct containing the necessary parameters for estimating swap returns.
-     *  See {IZapAnalyzer.SwapReturnsParams} for more information.
-     * @return returnValues The struct containing the estimated swap returns.
-     *  See {IZapAnalyzer.SwapReturns} for more information.
-     */
-    function estimateSwapReturns(
-        IZapAnalyzer.SwapReturnsParams memory params
-    ) external view returns (IZapAnalyzer.SwapReturns memory returnValues) {
-        return zapAnalyzer.estimateSwapReturns(params);
+        uint256 sqrtPriceX96;
+
+        (sqrtPriceX96, , , , , , ) = IAlgebraPool(tokenPegPair).globalState();
+
+        uint256 token0Decimals = TokenHelper.getTokenDecimals(token0);
+        uint256 token1Decimals = TokenHelper.getTokenDecimals(token1);
+
+        if (token1 < token0) {
+            price = (2 ** 192) / ((sqrtPriceX96) ** 2 / uint256(10 ** (token0Decimals + 18 - token1Decimals)));
+        } else {
+            price = ((sqrtPriceX96) ** 2) / ((2 ** 192) / uint256(10 ** (token0Decimals + 18 - token1Decimals)));
+        }
     }
 }
