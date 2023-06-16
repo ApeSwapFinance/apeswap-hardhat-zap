@@ -50,8 +50,6 @@ contract ZapAnalyzer is IZapAnalyzer {
         address inputToken;
         address uniV3Pool;
         address arrakisPool;
-        uint256 weightedPrice0;
-        uint256 weightedPrice1;
     }
 
     /**
@@ -61,9 +59,12 @@ contract ZapAnalyzer is IZapAnalyzer {
      * @return returnValues The struct containing the estimated swap returns.
      *  See {SwapReturns} for more information.
      */
-    function estimateSwapReturns(
-        SwapReturnsParams memory params
-    ) external view override returns (SwapReturns memory returnValues) {
+    function estimateSwapReturns(SwapReturnsParams memory params)
+        external
+        view
+        override
+        returns (SwapReturns memory returnValues)
+    {
         minAmountsLocalVars memory vars;
 
         vars.token0 = params.swapPath0.length == 0
@@ -141,10 +142,12 @@ contract ZapAnalyzer is IZapAnalyzer {
             (returnValues.swapToToken0, returnValues.swapToToken1) = getSwapRatio(swapRatioParams);
         }
 
-        vars.weightedPrice0 = vars.inputToken == vars.token0 ? 1e18 : getWeightedPrice(params.swapPath0);
-        vars.weightedPrice1 = vars.inputToken == vars.token1 ? 1e18 : getWeightedPrice(params.swapPath1);
-        returnValues.minAmountSwap0 = (returnValues.swapToToken0 * vars.weightedPrice0) / 1e18;
-        returnValues.minAmountSwap1 = (returnValues.swapToToken1 * vars.weightedPrice1) / 1e18;
+        returnValues.minAmountSwap0 = vars.inputToken == vars.token0
+            ? 1e18
+            : getWeightedPrice(params.swapPath0, returnValues.swapToToken0, true);
+        returnValues.minAmountSwap1 = vars.inputToken == vars.token1
+            ? 1e18
+            : getWeightedPrice(params.swapPath1, returnValues.swapToToken1, true);
 
         return returnValues;
     }
@@ -169,15 +172,18 @@ contract ZapAnalyzer is IZapAnalyzer {
         uint256 token0decimals;
         uint256 token1decimals;
         uint256 weightedPrice1;
+        uint256 weightedPrice0;
         uint256 percentage0;
         uint256 percentage1;
     }
 
     /// @notice Get ratio of how much of input token to swap to underlying tokens for lp to match ratio in pool
     /// @param swapRatioParams swap ratio params
-    function getSwapRatio(
-        SwapRatioParams memory swapRatioParams
-    ) internal view returns (uint256 amount0, uint256 amount1) {
+    function getSwapRatio(SwapRatioParams memory swapRatioParams)
+        internal
+        view
+        returns (uint256 amount0, uint256 amount1)
+    {
         SwapRatioLocalVars memory vars;
 
         (vars.underlying0, vars.underlying1) = getLPAddRatio(
@@ -195,14 +201,17 @@ contract ZapAnalyzer is IZapAnalyzer {
         vars.underlying0 = TokenHelper.normalizeTokenDecimals(vars.underlying0, vars.token0decimals);
         vars.underlying1 = TokenHelper.normalizeTokenDecimals(vars.underlying1, vars.token1decimals);
 
+        vars.weightedPrice0 = swapRatioParams.inputToken == swapRatioParams.token0
+            ? 1e18
+            : getWeightedPrice(swapRatioParams.swapPath0, 1e12, false);
         vars.weightedPrice1 = swapRatioParams.inputToken == swapRatioParams.token1
             ? 1e18
-            : getWeightedPrice(swapRatioParams.swapPath1);
+            : getWeightedPrice(swapRatioParams.swapPath1, 1e12, false);
 
         uint256 lpRatio = ((vars.underlying0 * 1e18) / vars.underlying1);
         amount0 =
             (lpRatio * swapRatioParams.inputAmount * vars.weightedPrice1) /
-            (1e36 + lpRatio * vars.weightedPrice1);
+            (lpRatio * vars.weightedPrice1 + 1e18 * vars.weightedPrice0);
         amount1 = swapRatioParams.inputAmount - amount0;
 
         if (swapRatioParams.token1 < swapRatioParams.token0) {
@@ -241,18 +250,23 @@ contract ZapAnalyzer is IZapAnalyzer {
     /// @notice Returns value based on other token
     /// @param fullPath swap path
     /// @return weightedPrice value of last token of path based on first
-    function getWeightedPrice(SwapPath[] memory fullPath) internal view returns (uint256 weightedPrice) {
+    function getWeightedPrice(
+        SwapPath[] memory fullPath,
+        uint256 amount,
+        bool exact
+    ) internal view returns (uint256 weightedPrice) {
         weightedPrice = 1e18;
         for (uint256 i = 0; i < fullPath.length; i++) {
             SwapPath memory path = fullPath[i];
             if (path.swapType == SwapType.V2) {
                 uint256 tokenDecimals = TokenHelper.getTokenDecimals(path.path[path.path.length - 1]);
 
-                uint256[] memory amountsOut0 = IV2SwapRouter02(path.swapRouter).getAmountsOut(1e18, path.path);
+                uint256[] memory amountsOut0 = IV2SwapRouter02(path.swapRouter).getAmountsOut(amount, path.path);
+                uint256 div = exact ? 1e18 : amount;
                 weightedPrice =
                     (weightedPrice *
                         TokenHelper.normalizeTokenDecimals(amountsOut0[amountsOut0.length - 1], tokenDecimals)) /
-                    1e18;
+                    div;
             } else if (path.swapType == SwapType.V3) {
                 for (uint256 index = 0; index < path.path.length - 1; index++) {
                     weightedPrice =
