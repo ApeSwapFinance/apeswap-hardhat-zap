@@ -57,6 +57,8 @@ contract ApeSwapZapFullV5 is
         ITreasury goldenBananaTreasury,
         address _zapAnalyzer
     ) WrapNative(wNative) ApeSwapZapPools(goldenBananaTreasury) {
+        require(address(wNative) != address(0), "ApeSwapZap: wnative can't be address()");
+        require(_zapAnalyzer != address(0), "ApeSwapZap: zap analyzer can't be address()");
         zapAnalyzer = ZapAnalyzer(_zapAnalyzer);
     }
 
@@ -67,9 +69,11 @@ contract ApeSwapZapFullV5 is
      * @return returnValues The struct containing the estimated swap returns.
      *  See {IZapAnalyzer.SwapReturns} for more information.
      */
-    function estimateSwapReturns(
-        IZapAnalyzer.SwapReturnsParams memory params
-    ) external view returns (IZapAnalyzer.SwapReturns memory returnValues) {
+    function estimateSwapReturns(IZapAnalyzer.SwapReturnsParams memory params)
+        external
+        view
+        returns (IZapAnalyzer.SwapReturns memory returnValues)
+    {
         return zapAnalyzer.estimateSwapReturns(params);
     }
 }

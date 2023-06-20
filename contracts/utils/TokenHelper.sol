@@ -32,7 +32,7 @@ library TokenHelper {
         try IERC20Metadata(token).decimals() returns (uint8 dec) {
             decimals = dec;
         } catch {
-            decimals = 18;
+            revert("Token decimals can't be retrieved");
         }
     }
 
@@ -40,6 +40,6 @@ library TokenHelper {
     /// @param amount Amount of tokens
     /// @param decimals Decimals of given token amount to scale. MUST be <=18
     function normalizeTokenDecimals(uint256 amount, uint256 decimals) internal pure returns (uint256) {
-        return amount * 10 ** (18 - decimals);
+        return amount * 10**(18 - decimals);
     }
 }

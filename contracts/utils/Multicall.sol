@@ -6,6 +6,7 @@ import "../interfaces/IMulticall.sol";
 
 /// @title Multicall
 /// @notice Enables calling multiple methods in a single call to the contract
+/// @dev The `msg.value` should not be trusted for any method callable from multicall.
 abstract contract Multicall is IMulticall {
     /// @inheritdoc IMulticall
     function multicall(bytes[] calldata data) public payable override returns (bytes[] memory results) {

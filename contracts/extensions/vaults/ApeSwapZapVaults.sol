@@ -21,6 +21,13 @@ abstract contract ApeSwapZapVaults is TransferHelper {
     event ZapVault(IERC20 inputToken, uint256 inputAmount, uint256 vaultPid);
 
     function zapVault(zapVaultParams memory params) external payable {
+        require(
+            params.recipient != address(0) &&
+                params.recipient != address(this) &&
+                params.recipient != Constants.ADDRESS_THIS,
+            "ApeSwapZap: Recipient can't be address(0) or address(this)"
+        );
+
         IBaseBananaMaximizerStrategy vault = IBaseBananaMaximizerStrategy(
             params.maximizerVaultApe.vaults(params.vaultPid)
         );
@@ -28,7 +35,6 @@ abstract contract ApeSwapZapVaults is TransferHelper {
         params.inputAmount = _transferIn(inputToken, params.inputAmount);
 
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
-        else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
 
         inputToken.approve(address(params.maximizerVaultApe), params.inputAmount);
         params.maximizerVaultApe.depositTo(params.vaultPid, params.recipient, params.inputAmount);

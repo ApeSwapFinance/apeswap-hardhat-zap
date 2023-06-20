@@ -49,17 +49,25 @@ abstract contract ApeSwapZapPools is TransferHelper {
     }
 
     function zapPool(ZapPoolParams memory params) external payable {
+        require(
+            params.recipient != address(0) &&
+                params.recipient != address(this) &&
+                params.recipient != Constants.ADDRESS_THIS,
+            "ApeSwapZap: Recipient can't be address(0) or address(this)"
+        );
+
         IERC20 inputToken = params.pool.STAKE_TOKEN();
-        params.inputAmount = _transferIn(inputToken, params.inputAmount);
 
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
-        else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
 
         if (inputToken == GNANA) {
+            params.inputAmount = _transferIn(BANANA, params.inputAmount);
             IERC20(BANANA).approve(address(GNANA_TREASURY), params.inputAmount);
             uint256 beforeAmount = inputToken.balanceOf(address(this));
             GNANA_TREASURY.buy(params.inputAmount);
             params.inputAmount = inputToken.balanceOf(address(this)) - beforeAmount;
+        } else {
+            params.inputAmount = _transferIn(inputToken, params.inputAmount);
         }
 
         inputToken.approve(address(params.pool), params.inputAmount);

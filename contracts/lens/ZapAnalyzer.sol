@@ -5,7 +5,7 @@ pragma solidity 0.8.15;
   ______                     ______                                 
  /      \                   /      \                                
 |  ▓▓▓▓▓▓\ ______   ______ |  ▓▓▓▓▓▓\__   __   __  ______   ______  
-| ▓▓__| ▓▓/      \ /      \| ▓▓___\▓▓  \ |  \ |  \|      \ /      \ 
+| ▓▓__| ▓▓/      \ /      \| ▓▓___\▓▓  \ |  \ |  \|      \ /      \  
 | ▓▓    ▓▓  ▓▓▓▓▓▓\  ▓▓▓▓▓▓\\▓▓    \| ▓▓ | ▓▓ | ▓▓ \▓▓▓▓▓▓\  ▓▓▓▓▓▓\
 | ▓▓▓▓▓▓▓▓ ▓▓  | ▓▓ ▓▓    ▓▓_\▓▓▓▓▓▓\ ▓▓ | ▓▓ | ▓▓/      ▓▓ ▓▓  | ▓▓
 | ▓▓  | ▓▓ ▓▓__/ ▓▓ ▓▓▓▓▓▓▓▓  \__| ▓▓ ▓▓_/ ▓▓_/ ▓▓  ▓▓▓▓▓▓▓ ▓▓__/ ▓▓
@@ -20,7 +20,7 @@ pragma solidity 0.8.15;
  * Telegram:        https://t.me/ape_swap
  * Announcements:   https://t.me/ape_swap_news
  * Discord:         https://ApeSwap.click/discord
- * Reddit:          https://reddit.com/r/ApeSwap
+ * Reddit:          https://reddit.com/r/ApeSwap 
  * Instagram:       https://instagram.com/ApeSwap.finance
  * GitHub:          https://github.com/ApeSwapFinance
  */
@@ -50,6 +50,8 @@ contract ZapAnalyzer is IZapAnalyzer {
         address inputToken;
         address uniV3Pool;
         address arrakisPool;
+        uint256 weightedPrice0;
+        uint256 weightedPrice1;
     }
 
     /**
@@ -142,12 +144,10 @@ contract ZapAnalyzer is IZapAnalyzer {
             (returnValues.swapToToken0, returnValues.swapToToken1) = getSwapRatio(swapRatioParams);
         }
 
-        returnValues.minAmountSwap0 = vars.inputToken == vars.token0
-            ? 1e18
-            : getWeightedPrice(params.swapPath0, returnValues.swapToToken0, true);
-        returnValues.minAmountSwap1 = vars.inputToken == vars.token1
-            ? 1e18
-            : getWeightedPrice(params.swapPath1, returnValues.swapToToken1, true);
+        vars.weightedPrice0 = vars.inputToken == vars.token0 ? 1e18 : getWeightedPrice(params.swapPath0);
+        vars.weightedPrice1 = vars.inputToken == vars.token1 ? 1e18 : getWeightedPrice(params.swapPath1);
+        returnValues.minAmountSwap0 = (returnValues.swapToToken0 * vars.weightedPrice0) / 1e18;
+        returnValues.minAmountSwap1 = (returnValues.swapToToken1 * vars.weightedPrice1) / 1e18;
 
         return returnValues;
     }
@@ -203,15 +203,15 @@ contract ZapAnalyzer is IZapAnalyzer {
 
         vars.weightedPrice0 = swapRatioParams.inputToken == swapRatioParams.token0
             ? 1e18
-            : getWeightedPrice(swapRatioParams.swapPath0, 1e12, false);
+            : getWeightedPrice(swapRatioParams.swapPath0);
         vars.weightedPrice1 = swapRatioParams.inputToken == swapRatioParams.token1
             ? 1e18
-            : getWeightedPrice(swapRatioParams.swapPath1, 1e12, false);
+            : getWeightedPrice(swapRatioParams.swapPath1);
 
-        uint256 lpRatio = ((vars.underlying0 * 1e18) / vars.underlying1);
+        uint256 lpRatio = ((vars.underlying0 * 1e36) / vars.underlying1);
         amount0 =
-            (lpRatio * swapRatioParams.inputAmount * vars.weightedPrice1) /
-            (lpRatio * vars.weightedPrice1 + 1e18 * vars.weightedPrice0);
+            (((lpRatio * vars.weightedPrice1) / 1e18) * swapRatioParams.inputAmount) /
+            (((lpRatio * vars.weightedPrice1) / 1e18) + 1e18 * vars.weightedPrice0);
         amount1 = swapRatioParams.inputAmount - amount0;
 
         if (swapRatioParams.token1 < swapRatioParams.token0) {
@@ -238,9 +238,11 @@ contract ZapAnalyzer is IZapAnalyzer {
                 tickUpper
             );
         } else if (gammaHypervisor != address(0)) {
-            (uint256 amountStart, uint256 amountEnd) = UniProxy(Hypervisor(gammaHypervisor).whitelistedAddress())
-                .getDepositAmount(gammaHypervisor, token0, 1e18);
-            amount0 = 1e18;
+            uint256 fullInputToken = 10**IERC20Metadata(token0).decimals();
+            (uint256 amountStart, uint256 amountEnd) = IGammaUniProxy(
+                IGammaHypervisor(gammaHypervisor).whitelistedAddress()
+            ).getDepositAmount(gammaHypervisor, token0, fullInputToken);
+            amount0 = fullInputToken;
             amount1 = (amountStart + amountEnd) / 2;
         } else {
             revert("Liquidity address not set");
@@ -250,23 +252,20 @@ contract ZapAnalyzer is IZapAnalyzer {
     /// @notice Returns value based on other token
     /// @param fullPath swap path
     /// @return weightedPrice value of last token of path based on first
-    function getWeightedPrice(
-        SwapPath[] memory fullPath,
-        uint256 amount,
-        bool exact
-    ) internal view returns (uint256 weightedPrice) {
+    function getWeightedPrice(SwapPath[] memory fullPath) internal view returns (uint256 weightedPrice) {
         weightedPrice = 1e18;
         for (uint256 i = 0; i < fullPath.length; i++) {
             SwapPath memory path = fullPath[i];
             if (path.swapType == SwapType.V2) {
+                //divide by 1/6 to decrease slippage impact. Noted that it only works for tokens with 6 or more decimals
+                uint256 amount = 10**IERC20Metadata(path.path[0]).decimals() / 1e6;
                 uint256 tokenDecimals = TokenHelper.getTokenDecimals(path.path[path.path.length - 1]);
 
                 uint256[] memory amountsOut0 = IV2SwapRouter02(path.swapRouter).getAmountsOut(amount, path.path);
-                uint256 div = exact ? 1e18 : amount;
                 weightedPrice =
                     (weightedPrice *
                         TokenHelper.normalizeTokenDecimals(amountsOut0[amountsOut0.length - 1], tokenDecimals)) /
-                    div;
+                    amount;
             } else if (path.swapType == SwapType.V3) {
                 for (uint256 index = 0; index < path.path.length - 1; index++) {
                     weightedPrice =
