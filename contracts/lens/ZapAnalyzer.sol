@@ -144,12 +144,11 @@ contract ZapAnalyzer is IZapAnalyzer {
             (returnValues.swapToToken0, returnValues.swapToToken1) = getSwapRatio(swapRatioParams);
         }
 
-        vars.weightedPrice0 = vars.inputToken == vars.token0 ? 1e18 : getWeightedPrice(params.swapPath0);
-        vars.weightedPrice1 = vars.inputToken == vars.token1 ? 1e18 : getWeightedPrice(params.swapPath1);
-        returnValues.minAmountSwap0 = (returnValues.swapToToken0 * vars.weightedPrice0) / 1e18;
-        returnValues.minAmountSwap1 = (returnValues.swapToToken1 * vars.weightedPrice1) / 1e18;
-
-        return returnValues;
+        uint256 fullInputToken = 10**TokenHelper.getTokenDecimals(vars.inputToken);
+        vars.weightedPrice0 = vars.inputToken == vars.token0 ? fullInputToken : getWeightedPrice(params.swapPath0);
+        vars.weightedPrice1 = vars.inputToken == vars.token1 ? fullInputToken : getWeightedPrice(params.swapPath1);
+        returnValues.minAmountSwap0 = (returnValues.swapToToken0 * vars.weightedPrice0) / fullInputToken;
+        returnValues.minAmountSwap1 = (returnValues.swapToToken1 * vars.weightedPrice1) / fullInputToken;
     }
 
     struct SwapRatioParams {
@@ -169,12 +168,8 @@ contract ZapAnalyzer is IZapAnalyzer {
     struct SwapRatioLocalVars {
         uint256 underlying0;
         uint256 underlying1;
-        uint256 token0decimals;
-        uint256 token1decimals;
-        uint256 weightedPrice1;
         uint256 weightedPrice0;
-        uint256 percentage0;
-        uint256 percentage1;
+        uint256 weightedPrice1;
     }
 
     /// @notice Get ratio of how much of input token to swap to underlying tokens for lp to match ratio in pool
@@ -184,6 +179,16 @@ contract ZapAnalyzer is IZapAnalyzer {
         view
         returns (uint256 amount0, uint256 amount1)
     {
+        bool swap = false;
+        if (swapRatioParams.token1 < swapRatioParams.token0) {
+            (swapRatioParams.token0, swapRatioParams.token1) = (swapRatioParams.token1, swapRatioParams.token0);
+            (swapRatioParams.swapPath0, swapRatioParams.swapPath1) = (
+                swapRatioParams.swapPath1,
+                swapRatioParams.swapPath0
+            );
+            swap = true;
+        }
+
         SwapRatioLocalVars memory vars;
 
         (vars.underlying0, vars.underlying1) = getLPAddRatio(
@@ -195,11 +200,6 @@ contract ZapAnalyzer is IZapAnalyzer {
             swapRatioParams.tickUpper,
             swapRatioParams.gammaHypervisor
         );
-
-        vars.token0decimals = IERC20Metadata(address(swapRatioParams.token0)).decimals();
-        vars.token1decimals = IERC20Metadata(address(swapRatioParams.token1)).decimals();
-        vars.underlying0 = TokenHelper.normalizeTokenDecimals(vars.underlying0, vars.token0decimals);
-        vars.underlying1 = TokenHelper.normalizeTokenDecimals(vars.underlying1, vars.token1decimals);
 
         vars.weightedPrice0 = swapRatioParams.inputToken == swapRatioParams.token0
             ? 1e18
@@ -214,7 +214,7 @@ contract ZapAnalyzer is IZapAnalyzer {
             (((lpRatio * vars.weightedPrice1) / 1e18) + 1e18 * vars.weightedPrice0);
         amount1 = swapRatioParams.inputAmount - amount0;
 
-        if (swapRatioParams.token1 < swapRatioParams.token0) {
+        if (swap) {
             (amount0, amount1) = (amount1, amount0);
         }
     }
@@ -257,15 +257,17 @@ contract ZapAnalyzer is IZapAnalyzer {
         for (uint256 i = 0; i < fullPath.length; i++) {
             SwapPath memory path = fullPath[i];
             if (path.swapType == SwapType.V2) {
-                //divide by 1/6 to decrease slippage impact. Noted that it only works for tokens with 6 or more decimals
-                uint256 amount = 10**IERC20Metadata(path.path[0]).decimals() / 1e6;
-                uint256 tokenDecimals = TokenHelper.getTokenDecimals(path.path[path.path.length - 1]);
+                //divide by 1/2 to decrease slippage impact
+                //Before it was a 1 full token which could cause a lot of slippage
+                //For exanple BTC paired with some token with low liquidity
+                //Swapping 1 full BTC could empty the pool. But now you swap 0.01 BTC which is less likely to empty the pool
+                //We shouldn't increase precision much either. 1000 usdc (6 decimals) to usdt might return 995
+                //whereas when precision is 1e6 it would return 0
+                uint256 precision = 1e2;
+                uint256 amount = 10**IERC20Metadata(path.path[0]).decimals() / precision;
 
-                uint256[] memory amountsOut0 = IV2SwapRouter02(path.swapRouter).getAmountsOut(amount, path.path);
-                weightedPrice =
-                    (weightedPrice *
-                        TokenHelper.normalizeTokenDecimals(amountsOut0[amountsOut0.length - 1], tokenDecimals)) /
-                    amount;
+                uint256[] memory amountsOut = IV2SwapRouter02(path.swapRouter).getAmountsOut(amount, path.path);
+                weightedPrice = (weightedPrice * (amountsOut[amountsOut.length - 1] * precision)) / 1e18;
             } else if (path.swapType == SwapType.V3) {
                 for (uint256 index = 0; index < path.path.length - 1; index++) {
                     weightedPrice =
