@@ -115,11 +115,9 @@ contract ZapLiquidity is TransferHelper {
     event AddLiquidityGamma(AddLiquidityGammaParams params);
     event RemoveLiquidityGamma(RemoveLiquidityGammaParams params);
 
-    function addLiquidityV2(AddLiquidityV2Params memory params)
-        external
-        payable
-        returns (uint256 amount0Lp, uint256 amount1Lp)
-    {
+    function addLiquidityV2(
+        AddLiquidityV2Params memory params
+    ) external payable returns (uint256 amount0Lp, uint256 amount1Lp) {
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
         else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
@@ -150,11 +148,9 @@ contract ZapLiquidity is TransferHelper {
         emit AddLiquidityV2(params);
     }
 
-    function removeLiquidityV2(RemoveLiquidityV2Params memory params)
-        public
-        payable
-        returns (uint256 amountAReceived, uint256 amountBReceived)
-    {
+    function removeLiquidityV2(
+        RemoveLiquidityV2Params memory params
+    ) public payable returns (uint256 amountAReceived, uint256 amountBReceived) {
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
         else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
@@ -176,16 +172,9 @@ contract ZapLiquidity is TransferHelper {
         emit RemoveLiquidityV2(params);
     }
 
-    function addLiquidityV3(AddLiquidityV3Params memory params)
-        external
-        payable
-        returns (
-            uint256 tokenId,
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        )
-    {
+    function addLiquidityV3(
+        AddLiquidityV3Params memory params
+    ) external payable returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) {
         require(params.token0 < params.token1, "ZapLiquidity: token0 must be strictly less than token1 by sort order");
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
@@ -222,11 +211,9 @@ contract ZapLiquidity is TransferHelper {
         emit AddLiquidityV3(params);
     }
 
-    function addLiquidityArrakis(AddLiquidityArrakisParams memory params)
-        external
-        payable
-        returns (uint256 amount0Lp, uint256 amount1Lp)
-    {
+    function addLiquidityArrakis(
+        AddLiquidityArrakisParams memory params
+    ) external payable returns (uint256 amount0Lp, uint256 amount1Lp) {
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
         else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
@@ -291,19 +278,19 @@ contract ZapLiquidity is TransferHelper {
         emit AddLiquidityGamma(params);
     }
 
-    function removeLiquidityGamma(RemoveLiquidityGammaParams memory params)
-        external
-        payable
-        returns (uint256 amount0, uint256 amount1)
-    {
+    function removeLiquidityGamma(
+        RemoveLiquidityGammaParams memory params
+    ) external payable returns (uint256 amount0, uint256 amount1) {
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
         else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
 
+        uint256 sharesToRemove = _transferIn(IERC20(params.hypervisor), params.shares);
+
         (amount0, amount1) = IGammaHypervisor(params.hypervisor).withdraw(
-            params.shares,
+            sharesToRemove,
             params.recipient,
-            msg.sender,
+            address(this),
             params.minAmounts
         );
 

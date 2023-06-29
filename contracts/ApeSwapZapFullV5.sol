@@ -34,7 +34,7 @@ import "./extensions/pools/ApeSwapZapPools.sol";
 import "./extensions/pools/libraries/ITreasury.sol";
 import "./extensions/vaults/ApeSwapZapVaults.sol";
 import "./extensions/lending/ApeSwapZapLending.sol";
-import "./lens/ZapAnalyzer.sol";
+import "./lens/IZapAnalyzer.sol";
 import "./utils/Multicall.sol";
 import "./interfaces/IWETH.sol";
 
@@ -55,11 +55,11 @@ contract ApeSwapZapFullV5 is
     constructor(
         IWETH wNative,
         ITreasury goldenBananaTreasury,
-        address _zapAnalyzer
+        IZapAnalyzer _zapAnalyzer
     ) WrapNative(wNative) ApeSwapZapPools(goldenBananaTreasury) {
-        require(address(wNative) != address(0), "ApeSwapZap: wnative can't be address()");
-        require(_zapAnalyzer != address(0), "ApeSwapZap: zap analyzer can't be address()");
-        zapAnalyzer = ZapAnalyzer(_zapAnalyzer);
+        require(address(wNative) != address(0), "ApeSwapZap: wNative can't be address(0)");
+        require(_zapAnalyzer.isZapAnalyzer(), "ApeSwapZap: Invalid ZapAnalyzer");
+        zapAnalyzer = _zapAnalyzer;
     }
 
     /**

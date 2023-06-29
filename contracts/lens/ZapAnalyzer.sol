@@ -54,6 +54,8 @@ contract ZapAnalyzer is IZapAnalyzer {
         uint256 weightedPrice1;
     }
 
+    bool public constant isZapAnalyzer = true;
+
     /**
      * @dev This function estimates the swap returns based on the given parameters.
      * @param params The struct containing the necessary parameters for estimating swap returns.
@@ -61,12 +63,9 @@ contract ZapAnalyzer is IZapAnalyzer {
      * @return returnValues The struct containing the estimated swap returns.
      *  See {SwapReturns} for more information.
      */
-    function estimateSwapReturns(SwapReturnsParams memory params)
-        external
-        view
-        override
-        returns (SwapReturns memory returnValues)
-    {
+    function estimateSwapReturns(
+        SwapReturnsParams memory params
+    ) external view override returns (SwapReturns memory returnValues) {
         minAmountsLocalVars memory vars;
 
         vars.token0 = params.swapPath0.length == 0
@@ -86,12 +85,23 @@ contract ZapAnalyzer is IZapAnalyzer {
             returnValues.swapToToken0 = params.inputAmount / 2;
             returnValues.swapToToken1 = params.inputAmount / 2;
         } else if (params.liquidityPath.liquidityType == LiquidityType.V3) {
+            (uint256 token0Ratio, uint256 token1Ratio) = UniV3LiquidityHelper.getLPAddRatio(
+                params.liquidityPath.lpRouter,
+                vars.token0,
+                vars.token1,
+                params.liquidityPath.uniV3PoolLPFee,
+                params.liquidityPath.tickLower,
+                params.liquidityPath.tickUpper
+            );
+
             //V3 swap amounts
             SwapRatioParams memory swapRatioParams = SwapRatioParams({
                 inputToken: vars.inputToken,
                 inputAmount: params.inputAmount,
                 token0: vars.token0,
+                token0Ratio: token0Ratio,
                 token1: vars.token1,
+                token1Ratio: token1Ratio,
                 swapPath0: params.swapPath0,
                 swapPath1: params.swapPath1,
                 fee: params.liquidityPath.uniV3PoolLPFee,
@@ -100,7 +110,7 @@ contract ZapAnalyzer is IZapAnalyzer {
                 uniV3Factory: params.liquidityPath.lpRouter,
                 gammaHypervisor: address(0)
             });
-            (returnValues.swapToToken0, returnValues.swapToToken1) = getSwapRatio(swapRatioParams);
+            (returnValues.swapToToken0, returnValues.swapToToken1) = _getSwapRatio(swapRatioParams);
         } else if (params.liquidityPath.liquidityType == LiquidityType.Arrakis) {
             //Arrakis swap amounts
             vars.uniV3Pool = IUniswapV3Factory(IArrakisRouter(params.liquidityPath.lpRouter).factory()).getPool(
@@ -112,11 +122,21 @@ contract ZapAnalyzer is IZapAnalyzer {
                 vars.uniV3Pool,
                 IArrakisFactoryV1(params.liquidityPath.arrakisFactory)
             );
+
+            uint256 token0FullInput = 10 ** TokenHelper.getTokenDecimals(vars.token0);
+            uint256 token1FullInput = 10 ** TokenHelper.getTokenDecimals(vars.token1);
+            (uint256 token0Ratio, uint256 token1Ratio, ) = IArrakisPool(vars.arrakisPool).getMintAmounts(
+                token0FullInput,
+                token1FullInput
+            );
+
             SwapRatioParams memory swapRatioParams = SwapRatioParams({
                 inputToken: vars.inputToken,
                 inputAmount: params.inputAmount,
                 token0: vars.token0,
+                token0Ratio: token0Ratio,
                 token1: vars.token1,
+                token1Ratio: token1Ratio,
                 swapPath0: params.swapPath0,
                 swapPath1: params.swapPath1,
                 fee: params.liquidityPath.uniV3PoolLPFee,
@@ -125,14 +145,24 @@ contract ZapAnalyzer is IZapAnalyzer {
                 uniV3Factory: IArrakisRouter(params.liquidityPath.lpRouter).factory(),
                 gammaHypervisor: address(0)
             });
-            (returnValues.swapToToken0, returnValues.swapToToken1) = getSwapRatio(swapRatioParams);
+
+            (returnValues.swapToToken0, returnValues.swapToToken1) = _getSwapRatio(swapRatioParams);
         } else if (params.liquidityPath.liquidityType == LiquidityType.Gamma) {
+            uint256 token0FullInput = 10 ** TokenHelper.getTokenDecimals(vars.token0);
+            (uint256 amountStart, uint256 amountEnd) = IGammaUniProxy(
+                IGammaHypervisor(params.liquidityPath.lpRouter).whitelistedAddress()
+            ).getDepositAmount(params.liquidityPath.lpRouter, vars.token0, token0FullInput);
+            uint256 token0Ratio = token0FullInput;
+            uint256 token1Ratio = (amountStart + amountEnd) / 2;
+
             //Gamma swap amounts
             SwapRatioParams memory swapRatioParams = SwapRatioParams({
                 inputToken: vars.inputToken,
                 inputAmount: params.inputAmount,
                 token0: vars.token0,
+                token0Ratio: token0Ratio,
                 token1: vars.token1,
+                token1Ratio: token1Ratio,
                 swapPath0: params.swapPath0,
                 swapPath1: params.swapPath1,
                 fee: 0,
@@ -141,12 +171,12 @@ contract ZapAnalyzer is IZapAnalyzer {
                 uniV3Factory: address(0),
                 gammaHypervisor: params.liquidityPath.lpRouter
             });
-            (returnValues.swapToToken0, returnValues.swapToToken1) = getSwapRatio(swapRatioParams);
+            (returnValues.swapToToken0, returnValues.swapToToken1) = _getSwapRatio(swapRatioParams);
         }
 
-        uint256 fullInputToken = 10**TokenHelper.getTokenDecimals(vars.inputToken);
-        vars.weightedPrice0 = vars.inputToken == vars.token0 ? fullInputToken : getWeightedPrice(params.swapPath0);
-        vars.weightedPrice1 = vars.inputToken == vars.token1 ? fullInputToken : getWeightedPrice(params.swapPath1);
+        uint256 fullInputToken = 10 ** TokenHelper.getTokenDecimals(vars.inputToken);
+        vars.weightedPrice0 = vars.inputToken == vars.token0 ? fullInputToken : _getWeightedPrice(params.swapPath0);
+        vars.weightedPrice1 = vars.inputToken == vars.token1 ? fullInputToken : _getWeightedPrice(params.swapPath1);
         returnValues.minAmountSwap0 = (returnValues.swapToToken0 * vars.weightedPrice0) / fullInputToken;
         returnValues.minAmountSwap1 = (returnValues.swapToToken1 * vars.weightedPrice1) / fullInputToken;
     }
@@ -155,7 +185,9 @@ contract ZapAnalyzer is IZapAnalyzer {
         address inputToken;
         uint256 inputAmount;
         address token0;
+        uint256 token0Ratio;
         address token1;
+        uint256 token1Ratio;
         uint24 fee;
         int24 tickLower;
         int24 tickUpper;
@@ -165,20 +197,11 @@ contract ZapAnalyzer is IZapAnalyzer {
         address gammaHypervisor;
     }
 
-    struct SwapRatioLocalVars {
-        uint256 underlying0;
-        uint256 underlying1;
-        uint256 weightedPrice0;
-        uint256 weightedPrice1;
-    }
-
     /// @notice Get ratio of how much of input token to swap to underlying tokens for lp to match ratio in pool
     /// @param swapRatioParams swap ratio params
-    function getSwapRatio(SwapRatioParams memory swapRatioParams)
-        internal
-        view
-        returns (uint256 amount0, uint256 amount1)
-    {
+    function _getSwapRatio(
+        SwapRatioParams memory swapRatioParams
+    ) internal view returns (uint256 amount0, uint256 amount1) {
         bool swap = false;
         if (swapRatioParams.token1 < swapRatioParams.token0) {
             (swapRatioParams.token0, swapRatioParams.token1) = (swapRatioParams.token1, swapRatioParams.token0);
@@ -189,29 +212,17 @@ contract ZapAnalyzer is IZapAnalyzer {
             swap = true;
         }
 
-        SwapRatioLocalVars memory vars;
-
-        (vars.underlying0, vars.underlying1) = getLPAddRatio(
-            swapRatioParams.uniV3Factory,
-            swapRatioParams.token0,
-            swapRatioParams.token1,
-            swapRatioParams.fee,
-            swapRatioParams.tickLower,
-            swapRatioParams.tickUpper,
-            swapRatioParams.gammaHypervisor
-        );
-
-        vars.weightedPrice0 = swapRatioParams.inputToken == swapRatioParams.token0
+        uint256 weightedPrice0 = swapRatioParams.inputToken == swapRatioParams.token0
             ? 1e18
-            : getWeightedPrice(swapRatioParams.swapPath0);
-        vars.weightedPrice1 = swapRatioParams.inputToken == swapRatioParams.token1
+            : _getWeightedPrice(swapRatioParams.swapPath0);
+        uint256 weightedPrice1 = swapRatioParams.inputToken == swapRatioParams.token1
             ? 1e18
-            : getWeightedPrice(swapRatioParams.swapPath1);
+            : _getWeightedPrice(swapRatioParams.swapPath1);
 
-        uint256 lpRatio = ((vars.underlying0 * 1e36) / vars.underlying1);
+        uint256 lpRatio = ((swapRatioParams.token0Ratio * 1e36) / swapRatioParams.token0Ratio);
         amount0 =
-            (((lpRatio * vars.weightedPrice1) / 1e18) * swapRatioParams.inputAmount) /
-            (((lpRatio * vars.weightedPrice1) / 1e18) + 1e18 * vars.weightedPrice0);
+            (((lpRatio * weightedPrice1) / 1e18) * swapRatioParams.inputAmount) /
+            (((lpRatio * weightedPrice1) / 1e18) + 1e18 * weightedPrice0);
         amount1 = swapRatioParams.inputAmount - amount0;
 
         if (swap) {
@@ -219,54 +230,31 @@ contract ZapAnalyzer is IZapAnalyzer {
         }
     }
 
-    function getLPAddRatio(
-        address uniV3Factory,
-        address token0,
-        address token1,
-        uint24 fee,
-        int24 tickLower,
-        int24 tickUpper,
-        address gammaHypervisor
-    ) internal view returns (uint256 amount0, uint256 amount1) {
-        if (uniV3Factory != address(0)) {
-            (amount0, amount1) = UniV3LiquidityHelper.getLPAddRatio(
-                uniV3Factory,
-                token0,
-                token1,
-                fee,
-                tickLower,
-                tickUpper
-            );
-        } else if (gammaHypervisor != address(0)) {
-            uint256 fullInputToken = 10**IERC20Metadata(token0).decimals();
-            (uint256 amountStart, uint256 amountEnd) = IGammaUniProxy(
-                IGammaHypervisor(gammaHypervisor).whitelistedAddress()
-            ).getDepositAmount(gammaHypervisor, token0, fullInputToken);
-            amount0 = fullInputToken;
-            amount1 = (amountStart + amountEnd) / 2;
-        } else {
-            revert("Liquidity address not set");
-        }
-    }
-
     /// @notice Returns value based on other token
     /// @param fullPath swap path
     /// @return weightedPrice value of last token of path based on first
-    function getWeightedPrice(SwapPath[] memory fullPath) internal view returns (uint256 weightedPrice) {
+    function _getWeightedPrice(SwapPath[] memory fullPath) internal view returns (uint256 weightedPrice) {
         weightedPrice = 1e18;
         for (uint256 i = 0; i < fullPath.length; i++) {
             SwapPath memory path = fullPath[i];
             if (path.swapType == SwapType.V2) {
-                //divide by 1/2 to decrease slippage impact
-                //Before it was a 1 full token which could cause a lot of slippage
-                //For exanple BTC paired with some token with low liquidity
-                //Swapping 1 full BTC could empty the pool. But now you swap 0.01 BTC which is less likely to empty the pool
-                //We shouldn't increase precision much either. 1000 usdc (6 decimals) to usdt might return 995
-                //whereas when precision is 1e6 it would return 0
-                uint256 precision = 1e2;
-                uint256 amount = 10**IERC20Metadata(path.path[0]).decimals() / precision;
+                // Calculate the full token amount based on the token's decimals
+                uint256 fullTokenAmount = 10 ** TokenHelper.getTokenDecimals(path.path[0]);
 
-                uint256[] memory amountsOut = IV2SwapRouter02(path.swapRouter).getAmountsOut(amount, path.path);
+                // Determine the precision for the adjusted amount
+                // The goal is to reduce the impact of slippage, especially when dealing with tokens that have high value or low liquidity
+                // For example, swapping 1 full BTC could cause significant slippage in a pool with low liquidity, but swapping a smaller fraction of BTC would be less likely to cause slippage
+                // However, we also want to avoid increasing the precision too much, as this could lead to rounding errors
+                // For example, swapping 1000 USDC (6 decimals) would return 0 if the precision is too high
+                uint256 precision = 1e6; // Use a precision of 1e6 for tokens with more than 12 decimals
+                if (fullTokenAmount <= 1e12) {
+                    precision = 1e4; // Use a precision of 1e4 for tokens with more than 6 decimals
+                } else if (fullTokenAmount <= 1e6) {
+                    precision = 1e2; // Use a precision of 1e2 for tokens with less than or equal to 6 decimals
+                }
+                uint256 adjustedAmount = fullTokenAmount / precision;
+
+                uint256[] memory amountsOut = IV2SwapRouter02(path.swapRouter).getAmountsOut(adjustedAmount, path.path);
                 weightedPrice = (weightedPrice * (amountsOut[amountsOut.length - 1] * precision)) / 1e18;
             } else if (path.swapType == SwapType.V3) {
                 for (uint256 index = 0; index < path.path.length - 1; index++) {
