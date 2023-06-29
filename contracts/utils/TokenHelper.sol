@@ -32,7 +32,7 @@ library TokenHelper {
         try IERC20Metadata(token).decimals() returns (uint8 dec) {
             decimals = dec;
         } catch {
-            revert("Token decimals can't be retrieved");
+            decimals = 18;
         }
     }
 
