@@ -48,10 +48,8 @@ abstract contract ApeSwapZapLending is TransferHelper, MulticallGuard {
         uint256 cTokensReceived = params.market.balanceOf(address(this));
         require(cTokensReceived > 0, "ApeSwapZapLending: Nothing deposited");
 
-        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
-
         if (params.recipient != Constants.ADDRESS_THIS && params.recipient != address(this)) {
-            underlyingToken.safeTransfer(params.recipient, cTokensReceived);
+            _transferOut(underlyingToken, cTokensReceived, params.recipient);
         }
 
         emit ZapLending(params, cTokensReceived);

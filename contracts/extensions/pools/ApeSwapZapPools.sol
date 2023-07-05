@@ -55,17 +55,17 @@ abstract contract ApeSwapZapPools is TransferHelper, MulticallGuard {
                 params.recipient != Constants.ADDRESS_THIS,
             "ApeSwapZap: Recipient can't be address(0) or address(this)"
         );
+        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
 
         IERC20 inputToken = params.pool.STAKE_TOKEN();
 
-        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
-
         if (inputToken == GNANA) {
-            params.inputAmount = _transferIn(BANANA, params.inputAmount);
-            IERC20(BANANA).approve(address(GNANA_TREASURY), params.inputAmount);
-            uint256 beforeAmount = inputToken.balanceOf(address(this));
-            GNANA_TREASURY.buy(params.inputAmount);
-            params.inputAmount = inputToken.balanceOf(address(this)) - beforeAmount;
+            /// @dev GNANA is a derivative of BANANA. To obtain GNANA, we must buy with BANANA.
+            uint256 bananaInputAmount = _transferIn(BANANA, params.inputAmount);
+            IERC20(BANANA).approve(address(GNANA_TREASURY), bananaInputAmount);
+            uint256 beforeAmount = GNANA.balanceOf(address(this));
+            GNANA_TREASURY.buy(bananaInputAmount);
+            params.inputAmount = GNANA.balanceOf(address(this)) - beforeAmount;
         } else {
             params.inputAmount = _transferIn(inputToken, params.inputAmount);
         }
