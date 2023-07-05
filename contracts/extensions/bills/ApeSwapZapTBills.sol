@@ -24,11 +24,10 @@ abstract contract ApeSwapZapTBills is TransferHelper {
                 params.recipient != Constants.ADDRESS_THIS,
             "ApeSwapZap: Recipient can't be address(0) or address(this)"
         );
+        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
 
         IERC20 inputToken = IERC20(params.bill.principalToken());
         params.inputAmount = _transferIn(inputToken, params.inputAmount);
-
-        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
 
         inputToken.approve(address(params.bill), params.inputAmount);
         params.bill.deposit(params.inputAmount, params.maxPrice, params.recipient);

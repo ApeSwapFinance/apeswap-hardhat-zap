@@ -20,13 +20,13 @@ abstract contract ApeSwapZapLending is TransferHelper {
     }
 
     /// @notice Zap token single asset lending market
-    function zapLendingMarket(ZapLendingMarketParams memory params) external payable {
-        require(
-            params.recipient != address(0) &&
-                params.recipient != address(this) &&
-                params.recipient != Constants.ADDRESS_THIS,
-            "ApeSwapZap: Recipient can't be address(0) or address(this)"
-        );
+    function zapLendingMarket(
+        ZapLendingMarketParams memory params
+    ) external payable {
+        require(params.recipient != address(0), "ApeSwapZapLending: Recipient can't be address(0)");
+        /// @dev Lending oTokens can be sent to this contract for other feature deposits such as bonds
+        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
+        else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
 
         IERC20 underlyingToken = IERC20(params.market.underlying());
 
@@ -45,10 +45,8 @@ abstract contract ApeSwapZapLending is TransferHelper {
         uint256 cTokensReceived = params.market.balanceOf(address(this));
         require(cTokensReceived > 0, "ApeSwapZapLending: Nothing deposited");
 
-        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
-
         if (params.recipient != Constants.ADDRESS_THIS && params.recipient != address(this)) {
-            underlyingToken.safeTransfer(params.recipient, cTokensReceived);
+            _transferOut(underlyingToken, cTokensReceived, params.recipient);
         }
 
         emit ZapLending(params, cTokensReceived);

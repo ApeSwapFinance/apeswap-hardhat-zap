@@ -13,7 +13,7 @@ abstract contract Multicall is IMulticall {
     /// This is used to ensure that no surplus ETH is left in the contract after a function is executed.
     /// If the final balance is greater than the initial balance, the transaction is reverted.
     modifier noNativeSurplus() {
-        uint256 initialBalance = address(this).balance;
+        uint256 initialBalance = address(this).balance - msg.value;
         _; // Placeholder for the modified function
         require(address(this).balance <= initialBalance, "Native surplus in contract");
     }
@@ -22,6 +22,8 @@ abstract contract Multicall is IMulticall {
     function multicall(bytes[] calldata data) public payable override noNativeSurplus returns (bytes[] memory results) {
         results = new bytes[](data.length);
         for (uint256 i = 0; i < data.length; i++) {
+            /// @dev When delegatecall hits other functions, msg.sender will still be the original sender of the 
+            ///   transaction, not address(this)
             (bool success, bytes memory result) = address(this).delegatecall(data[i]);
 
             if (!success) {
