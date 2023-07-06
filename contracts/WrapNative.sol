@@ -14,9 +14,14 @@ contract WrapNative {
         WNative = _wNative;
     }
 
+    /// @dev The receive method is used as a fallback function in a contract
+    /// and is called when ether is sent to a contract with no calldata.
+    receive() external payable {
+        require(msg.sender == address(WNative), "ApeSwapZap: Only receive ether from wrapped");
+    }
+
     function wrapNative(uint256 amount, address recipient) external payable {
         require(recipient != address(0), "ApeSwapZap: recipient can't be address()");
-        require(msg.value >= amount, "ApeSwapZap: msg.value must be higher than or equal to amount to wrap");
         IWETH(WNative).deposit{value: amount}();
 
         if (recipient == Constants.MSG_SENDER) recipient = msg.sender;
