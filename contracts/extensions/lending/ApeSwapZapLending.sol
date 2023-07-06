@@ -20,9 +20,7 @@ abstract contract ApeSwapZapLending is TransferHelper {
     }
 
     /// @notice Zap token single asset lending market
-    function zapLendingMarket(
-        ZapLendingMarketParams memory params
-    ) external payable {
+    function zapLendingMarket(ZapLendingMarketParams memory params) external payable {
         require(params.recipient != address(0), "ApeSwapZapLending: Recipient can't be address(0)");
         /// @dev Lending oTokens can be sent to this contract for other feature deposits such as bonds
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;

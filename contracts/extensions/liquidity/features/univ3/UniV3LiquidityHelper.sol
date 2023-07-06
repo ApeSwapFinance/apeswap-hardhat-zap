@@ -54,7 +54,7 @@ library UniV3LiquidityHelper {
         ).slot0();
         uint160 highPrice = TickMath.getSqrtRatioAtTick(tickUpper);
         uint256 intermediate = FullMath.mulDiv(currentPrice, highPrice, FixedPoint96.Q96);
-        uint256 fullInputToken = 10**IERC20Metadata(token0).decimals();
+        uint256 fullInputToken = 10 ** IERC20Metadata(token0).decimals();
         uint128 liquidity = toUint128(FullMath.mulDiv(fullInputToken, intermediate, highPrice - currentPrice));
         amount0 = fullInputToken;
         amount1 = FullMath.mulDivRoundingUp(liquidity, currentPrice - lowPrice, FixedPoint96.Q96);
