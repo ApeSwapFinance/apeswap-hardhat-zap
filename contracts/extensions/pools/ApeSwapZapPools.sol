@@ -5,10 +5,10 @@ import "./libraries/IBEP20RewardApeV5.sol";
 import "./libraries/ITreasury.sol";
 import "../../libraries/Constants.sol";
 import "../../utils/TransferHelper.sol";
-
+import "../../utils/MulticallGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-abstract contract ApeSwapZapPools is TransferHelper {
+abstract contract ApeSwapZapPools is TransferHelper, MulticallGuard {
     using SafeERC20 for IERC20;
 
     struct ZapPoolParams {
@@ -48,7 +48,7 @@ abstract contract ApeSwapZapPools is TransferHelper {
         GNANA = gnana;
     }
 
-    function zapPool(ZapPoolParams memory params) external payable {
+    function zapPool(ZapPoolParams memory params) external payable multicallGuard(true, msg.value == 0) {
         require(
             params.recipient != address(0) &&
                 params.recipient != address(this) &&

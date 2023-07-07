@@ -35,9 +35,10 @@ import "./features/gamma/lib/IGammaUniProxy.sol";
 import "./features/gamma/lib/IGammaHypervisor.sol";
 import "../../libraries/Constants.sol";
 import "../../utils/TransferHelper.sol";
+import "../../utils/MulticallGuard.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
-contract ZapLiquidity is TransferHelper {
+contract ZapLiquidity is TransferHelper, MulticallGuard {
     using SafeERC20 for IERC20;
 
     struct AddLiquidityV2Params {
@@ -117,7 +118,7 @@ contract ZapLiquidity is TransferHelper {
 
     function addLiquidityV2(
         AddLiquidityV2Params memory params
-    ) external payable returns (uint256 amount0Lp, uint256 amount1Lp) {
+    ) external payable multicallGuard(true, msg.value == 0) returns (uint256 amount0Lp, uint256 amount1Lp) {
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
         else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
@@ -150,7 +151,7 @@ contract ZapLiquidity is TransferHelper {
 
     function removeLiquidityV2(
         RemoveLiquidityV2Params memory params
-    ) public payable returns (uint256 amountAReceived, uint256 amountBReceived) {
+    ) public payable multicallGuard(true, msg.value == 0) returns (uint256 amountAReceived, uint256 amountBReceived) {
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
         else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
@@ -174,7 +175,12 @@ contract ZapLiquidity is TransferHelper {
 
     function addLiquidityV3(
         AddLiquidityV3Params memory params
-    ) external payable returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) {
+    )
+        external
+        payable
+        multicallGuard(true, msg.value == 0)
+        returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)
+    {
         require(params.token0 < params.token1, "ZapLiquidity: token0 must be strictly less than token1 by sort order");
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
@@ -213,7 +219,7 @@ contract ZapLiquidity is TransferHelper {
 
     function addLiquidityArrakis(
         AddLiquidityArrakisParams memory params
-    ) external payable returns (uint256 amount0Lp, uint256 amount1Lp) {
+    ) external payable multicallGuard(true, msg.value == 0) returns (uint256 amount0Lp, uint256 amount1Lp) {
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
         else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
@@ -249,7 +255,9 @@ contract ZapLiquidity is TransferHelper {
         emit AddLiquidityArrakis(params);
     }
 
-    function addLiquidityGamma(AddLiquidityGammaParams memory params) external payable returns (uint256 shares) {
+    function addLiquidityGamma(
+        AddLiquidityGammaParams memory params
+    ) external payable multicallGuard(true, msg.value == 0) returns (uint256 shares) {
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
         else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
@@ -280,7 +288,7 @@ contract ZapLiquidity is TransferHelper {
 
     function removeLiquidityGamma(
         RemoveLiquidityGammaParams memory params
-    ) external payable returns (uint256 amount0, uint256 amount1) {
+    ) external payable multicallGuard(true, msg.value == 0) returns (uint256 amount0, uint256 amount1) {
         require(params.recipient != address(0), "ApeSwapZap: Recipient can't be address(0)");
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
         else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);

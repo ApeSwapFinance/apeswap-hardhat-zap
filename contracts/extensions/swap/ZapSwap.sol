@@ -28,10 +28,10 @@ pragma solidity 0.8.15;
 import "./features/apeswap-ms-router/lib/IApeSwapMultiSwapRouter.sol";
 import "../../libraries/Constants.sol";
 import "../../utils/TransferHelper.sol";
+import "../../utils/MulticallGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract ZapSwap is TransferHelper, ReentrancyGuard {
+contract ZapSwap is TransferHelper, MulticallGuard {
     using SafeERC20 for IERC20;
 
     enum SwapType2 {
@@ -51,7 +51,7 @@ contract ZapSwap is TransferHelper, ReentrancyGuard {
     /// @notice Zap single token to LP
     /// @dev This function cannot handle native swaps
     /// @param params all parameters for zap
-    function swap(SwapParams memory params) external payable nonReentrant {
+    function swap(SwapParams memory params) external payable multicallGuard(true, msg.value == 0) {
         require(params.router != address(0), "ZapSwap: Router can't be address(0)");
 
         params.inputAmount = _transferIn(params.inputToken, params.inputAmount);

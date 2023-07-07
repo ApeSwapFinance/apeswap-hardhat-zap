@@ -4,8 +4,9 @@ pragma solidity ^0.8.0;
 import "./libraries/IMiniApeV2.sol";
 import "../../libraries/Constants.sol";
 import "../../utils/TransferHelper.sol";
+import "../../utils/MulticallGuard.sol";
 
-abstract contract ApeSwapZapMiniApeV2 is TransferHelper {
+abstract contract ApeSwapZapMiniApeV2 is TransferHelper, MulticallGuard {
     using SafeERC20 for IERC20;
 
     struct ZapMiniApeV2Params {
@@ -17,7 +18,7 @@ abstract contract ApeSwapZapMiniApeV2 is TransferHelper {
 
     event ZapMiniApeV2(ZapMiniApeV2Params params);
 
-    function zapMiniApeV2(ZapMiniApeV2Params memory params) external payable {
+    function zapMiniApeV2(ZapMiniApeV2Params memory params) external payable multicallGuard(true, msg.value == 0) {
         require(
             params.recipient != address(0) &&
                 params.recipient != address(this) &&
