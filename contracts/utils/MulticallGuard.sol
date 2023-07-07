@@ -17,10 +17,10 @@ contract MulticallGuard {
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;
 
+    address private _multicall_initial_sender;
     uint256 private _multicall_status;
     /// @dev This is used to prevent reentrancy attacks when a function is called out of a multicall context.
     uint256 private _function_status;
-    address private _multicall_initial_sender;
 
     constructor() {
         _multicall_status = _NOT_ENTERED;
@@ -32,6 +32,8 @@ contract MulticallGuard {
     /// @dev This modifier ensures that no surplus native tokens are left in the contract after function execution
     /// @param noNativeSurplus If true, it checks that no surplus native tokens are left in the contract
     modifier guardMulticall(bool noNativeSurplus) {
+        // On the first call to guardMulticall, _multicall_status == _NOT_ENTERED
+        require(_multicall_status == _NOT_ENTERED, "MulticallGuard: reentrant call");
         _multicall_status = _ENTERED;
         _multicall_initial_sender = msg.sender;
         uint256 initialBalance = address(this).balance - msg.value;
@@ -53,9 +55,9 @@ contract MulticallGuard {
     /// @param inMulticallValidation If true, requires validation to pass when in a multicall context.
     /// @param notInMulticallValidation If true, requires validation to pass when not in a multicall context.
     modifier multicallGuard(bool inMulticallValidation, bool notInMulticallValidation) {
-        // On the first call to nonReentrant, _notEntered will be true
         require(_function_status == _NOT_ENTERED, "MulticallGuard: reentrant call");
         if (_multicall_status == _NOT_ENTERED) {
+            /// @dev Protect function against reentrancy when not in a multicall context
             _function_status = _ENTERED;
         }
         _requireNotInMulticall(notInMulticallValidation);
