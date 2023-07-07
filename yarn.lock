@@ -2,16 +2,16 @@
 # yarn lockfile v1
 
 
-"@ape.swap/contracts@^2.0.0-alpha.4":
-  version "2.0.0-alpha.7"
-  resolved "https://registry.yarnpkg.com/@ape.swap/contracts/-/contracts-2.0.0-alpha.7.tgz#e3a32c446c49b136049b7850ed14689cc73476dc"
-  integrity sha512-iA4NEZqMPoWJfbzxKFelrXYGZ5eaoI5dD/1EB9WGo424zmbvrLFSEKZM3/J9VSO1ymhAp4R2JHCVjRnipHuhpg==
+"@ape.swap/contracts@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@ape.swap/contracts/-/contracts-2.0.1.tgz#c156d786663fa7c3b4d293a3efe5bfb959636d4c"
+  integrity sha512-17qLTDkhimcm1bsHgwo4nzRZmB4a2ao35fOcfgSDye308REtfLJqebxzj11ywkVcI73FRDX540FlGBtbsQHuDg==
   dependencies:
-    "@nomicfoundation/hardhat-chai-matchers" "^1.0.3"
     "@openzeppelin/contracts" "^4.7.3"
     "@openzeppelin/contracts-upgradeable" "^4.7.3"
     "@openzeppelin/contracts-upgradeable-v0.7" "npm:@openzeppelin/contracts-upgradeable@^3.4.0"
     "@openzeppelin/contracts-v0.7" "npm:@openzeppelin/contracts@^3.4.2"
+    got "^11.8.5"
     underscore "^1.12.1"
 
 "@ape.swap/hardhat-test-helpers@0.6.6-alpha.0":
@@ -633,17 +633,6 @@
     "@types/chai-as-promised" "^7.1.3"
     chai-as-promised "^7.1.1"
     chalk "^2.4.2"
-    deep-eql "^4.0.1"
-    ordinal "^1.0.3"
-
-"@nomicfoundation/hardhat-chai-matchers@^1.0.3":
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/@nomicfoundation/hardhat-chai-matchers/-/hardhat-chai-matchers-1.0.6.tgz#72a2e312e1504ee5dd73fe302932736432ba96bc"
-  integrity sha512-f5ZMNmabZeZegEfuxn/0kW+mm7+yV7VNDxLpMOMGXWFJ2l/Ct3QShujzDRF9cOkK9Ui/hbDeOWGZqyQALDXVCQ==
-  dependencies:
-    "@ethersproject/abi" "^5.1.2"
-    "@types/chai-as-promised" "^7.1.3"
-    chai-as-promised "^7.1.1"
     deep-eql "^4.0.1"
     ordinal "^1.0.3"
 
