@@ -56,12 +56,11 @@ library UniV3SwapHelper {
         (sqrtPriceX96, , , , , , ) = IUniswapV3Pool(tokenPegPair).slot0();
 
         uint256 token0Decimals = TokenHelper.getTokenDecimals(token0);
-        uint256 token1Decimals = TokenHelper.getTokenDecimals(token1);
 
         if (token1 < token0) {
-            price = (2 ** 192) / ((sqrtPriceX96) ** 2 / uint256(10 ** (token0Decimals + 18 - token1Decimals)));
+            price = (2 ** 192) / ((sqrtPriceX96) ** 2 / uint256(10 ** (token0Decimals)));
         } else {
-            price = ((sqrtPriceX96) ** 2) / ((2 ** 192) / uint256(10 ** (token0Decimals + 18 - token1Decimals)));
+            price = ((sqrtPriceX96) ** 2) / ((2 ** 192) / uint256(10 ** (token0Decimals)));
         }
     }
 }

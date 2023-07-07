@@ -3,44 +3,55 @@ pragma solidity ^0.8.0;
 
 import "./lib/ICErc20.sol";
 import "../../utils/TransferHelper.sol";
+import "../../utils/MulticallGuard.sol";
 
-abstract contract ApeSwapZapLending is TransferHelper {
+abstract contract ApeSwapZapLending is TransferHelper, MulticallGuard {
     using SafeERC20 for IERC20;
     using SafeERC20 for ICErc20;
 
     /// @dev Native token market underlying
     address public constant LENDING_NATIVE_UNDERLYING = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    event ZapLending(uint256 inputAmount, ICErc20 market, uint256 outputAmount);
-    event ZapLendingMarket(uint256 inputAmount, ICErc20 market);
+    event ZapLending(ZapLendingMarketParams params, uint256 outputAmount);
+
+    struct ZapLendingMarketParams {
+        uint256 inputAmount;
+        ICErc20 market;
+        address recipient;
+    }
 
     /// @notice Zap token single asset lending market
-    /// @param inputAmount Amount of input tokens to zap
-    /// @param market Lending market to deposit to
-    /// @param recipient Recipient of cTokens
-    function zapLendingMarket(uint256 inputAmount, ICErc20 market, address recipient) external payable {
-        IERC20 underlyingToken = IERC20(market.underlying());
+    function zapLendingMarket(ZapLendingMarketParams memory params) external payable multicallGuard(true, true) {
+        require(params.recipient != address(0), "ApeSwapZapLending: Recipient can't be address(0)");
+        /// @dev Lending oTokens can be sent to this contract for other feature deposits such as bonds
+        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
+        else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
+
+        IERC20 underlyingToken = IERC20(params.market.underlying());
 
         if (address(underlyingToken) == LENDING_NATIVE_UNDERLYING) {
-            uint256 depositAmount = inputAmount == Constants.CONTRACT_BALANCE ? address(this).balance : inputAmount;
-            market.mint{value: depositAmount}();
+            /// @dev This validates non-multicall calls as this is a `payable` functions.
+            _requireNotInMulticall(msg.value == params.inputAmount);
+            uint256 depositAmount = params.inputAmount == Constants.CONTRACT_BALANCE
+                ? address(this).balance
+                : params.inputAmount;
+            params.market.mint{value: depositAmount}();
         } else {
-            inputAmount = _transferIn(underlyingToken, inputAmount);
-            uint256 depositAmount = underlyingToken.balanceOf(address(this));
-            underlyingToken.approve(address(market), depositAmount);
-            uint256 mintFailure = market.mint(depositAmount);
+            /// @dev This validates non-multicall calls as this is a `payable` functions.
+            _requireNotInMulticall(msg.value == 0);
+            uint256 inputAmount = _transferIn(underlyingToken, params.inputAmount);
+            underlyingToken.approve(address(params.market), inputAmount);
+            uint256 mintFailure = params.market.mint(inputAmount);
             require(mintFailure == 0, "ApeSwapZapLending: Mint failed");
-            underlyingToken.approve(address(market), 0);
+            underlyingToken.approve(address(params.market), 0);
         }
-        uint256 cTokensReceived = market.balanceOf(address(this));
+        uint256 cTokensReceived = params.market.balanceOf(address(this));
         require(cTokensReceived > 0, "ApeSwapZapLending: Nothing deposited");
 
-        if (recipient == Constants.MSG_SENDER) recipient = msg.sender;
-
-        if (recipient != Constants.ADDRESS_THIS && recipient != address(this)) {
-            underlyingToken.transfer(recipient, cTokensReceived);
+        if (params.recipient != Constants.ADDRESS_THIS && params.recipient != address(this)) {
+            _transferOut(underlyingToken, cTokensReceived, params.recipient);
         }
 
-        emit ZapLending(inputAmount, market, cTokensReceived);
+        emit ZapLending(params, cTokensReceived);
     }
 }

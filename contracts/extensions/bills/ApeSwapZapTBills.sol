@@ -2,12 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "./libraries/ICustomBill.sol";
-import "../swap/features/univ2/lib/IV2SwapRouter02.sol";
-import "../liquidity/features/univ2/lib/IApePair.sol";
 import "../../libraries/Constants.sol";
 import "../../utils/TransferHelper.sol";
-
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 abstract contract ApeSwapZapTBills is TransferHelper {
     using SafeERC20 for IERC20;
@@ -22,11 +18,16 @@ abstract contract ApeSwapZapTBills is TransferHelper {
     event ZapTBill(zapTBillParams params);
 
     function zapTBill(zapTBillParams memory params) external payable {
+        require(
+            params.recipient != address(0) &&
+                params.recipient != address(this) &&
+                params.recipient != Constants.ADDRESS_THIS,
+            "ApeSwapZap: Recipient can't be address(0) or address(this)"
+        );
+        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
+
         IERC20 inputToken = IERC20(params.bill.principalToken());
         params.inputAmount = _transferIn(inputToken, params.inputAmount);
-
-        if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
-        else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
 
         inputToken.approve(address(params.bill), params.inputAmount);
         params.bill.deposit(params.inputAmount, params.maxPrice, params.recipient);

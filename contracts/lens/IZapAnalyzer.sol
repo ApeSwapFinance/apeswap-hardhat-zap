@@ -45,6 +45,8 @@ interface IZapAnalyzer {
         uint256 minAmountSwap1;
     }
 
+    function isZapAnalyzer() external pure returns (bool);
+
     /// @notice get min amounts for swaps
     /// @param params all params
     function estimateSwapReturns(

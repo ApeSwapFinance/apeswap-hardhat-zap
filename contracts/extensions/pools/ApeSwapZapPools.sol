@@ -5,10 +5,10 @@ import "./libraries/IBEP20RewardApeV5.sol";
 import "./libraries/ITreasury.sol";
 import "../../libraries/Constants.sol";
 import "../../utils/TransferHelper.sol";
-
+import "../../utils/MulticallGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-abstract contract ApeSwapZapPools is TransferHelper {
+abstract contract ApeSwapZapPools is TransferHelper, MulticallGuard {
     using SafeERC20 for IERC20;
 
     struct ZapPoolParams {
@@ -48,18 +48,26 @@ abstract contract ApeSwapZapPools is TransferHelper {
         GNANA = gnana;
     }
 
-    function zapPool(ZapPoolParams memory params) external payable {
-        IERC20 inputToken = params.pool.STAKE_TOKEN();
-        params.inputAmount = _transferIn(inputToken, params.inputAmount);
-
+    function zapPool(ZapPoolParams memory params) external payable multicallGuard(true, msg.value == 0) {
+        require(
+            params.recipient != address(0) &&
+                params.recipient != address(this) &&
+                params.recipient != Constants.ADDRESS_THIS,
+            "ApeSwapZap: Recipient can't be address(0) or address(this)"
+        );
         if (params.recipient == Constants.MSG_SENDER) params.recipient = msg.sender;
-        else if (params.recipient == Constants.ADDRESS_THIS) params.recipient = address(this);
+
+        IERC20 inputToken = params.pool.STAKE_TOKEN();
 
         if (inputToken == GNANA) {
-            IERC20(BANANA).approve(address(GNANA_TREASURY), params.inputAmount);
-            uint256 beforeAmount = inputToken.balanceOf(address(this));
-            GNANA_TREASURY.buy(params.inputAmount);
-            params.inputAmount = inputToken.balanceOf(address(this)) - beforeAmount;
+            /// @dev GNANA is a derivative of BANANA. To obtain GNANA, we must buy with BANANA.
+            uint256 bananaInputAmount = _transferIn(BANANA, params.inputAmount);
+            IERC20(BANANA).approve(address(GNANA_TREASURY), bananaInputAmount);
+            uint256 beforeAmount = GNANA.balanceOf(address(this));
+            GNANA_TREASURY.buy(bananaInputAmount);
+            params.inputAmount = GNANA.balanceOf(address(this)) - beforeAmount;
+        } else {
+            params.inputAmount = _transferIn(inputToken, params.inputAmount);
         }
 
         inputToken.approve(address(params.pool), params.inputAmount);

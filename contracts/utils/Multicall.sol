@@ -3,14 +3,20 @@ pragma solidity >=0.8.0;
 pragma abicoder v2;
 
 import "../interfaces/IMulticall.sol";
+import "./MulticallGuard.sol";
 
 /// @title Multicall
 /// @notice Enables calling multiple methods in a single call to the contract
-abstract contract Multicall is IMulticall {
+/// @dev The `msg.value` should not be trusted for any method callable from multicall.
+abstract contract Multicall is IMulticall, MulticallGuard {
     /// @inheritdoc IMulticall
-    function multicall(bytes[] calldata data) public payable override returns (bytes[] memory results) {
+    function multicall(
+        bytes[] calldata data
+    ) public payable override guardMulticall(true) returns (bytes[] memory results) {
         results = new bytes[](data.length);
         for (uint256 i = 0; i < data.length; i++) {
+            /// @dev When delegatecall hits other functions, msg.sender will still be the original sender of the
+            ///   transaction, not address(this)
             (bool success, bytes memory result) = address(this).delegatecall(data[i]);
 
             if (!success) {

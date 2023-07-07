@@ -30,6 +30,7 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "@uniswap/v3-core/contracts/libraries/FullMath.sol";
 import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 library UniV3LiquidityHelper {
     /// @notice Downcasts uint256 to uint128
@@ -53,8 +54,9 @@ library UniV3LiquidityHelper {
         ).slot0();
         uint160 highPrice = TickMath.getSqrtRatioAtTick(tickUpper);
         uint256 intermediate = FullMath.mulDiv(currentPrice, highPrice, FixedPoint96.Q96);
-        uint128 liquidity = toUint128(FullMath.mulDiv(1e18, intermediate, highPrice - currentPrice));
-        amount0 = 1e18;
+        uint256 fullInputToken = 10 ** IERC20Metadata(token0).decimals();
+        uint128 liquidity = toUint128(FullMath.mulDiv(fullInputToken, intermediate, highPrice - currentPrice));
+        amount0 = fullInputToken;
         amount1 = FullMath.mulDivRoundingUp(liquidity, currentPrice - lowPrice, FixedPoint96.Q96);
     }
 }

@@ -304,13 +304,11 @@ describe('ZapV5', function () {
       }
     }
     const swapParams = {
+      router: router.address,
       inputToken: inputToken,
       inputAmount: inputAmount,
       swapType: 0,
-      caller: router.address,
       swapData: fullSwapData,
-      to: to,
-      deadline: '9999999999',
     }
     const populatedTx = await zapContract.populateTransaction.swap(swapParams)
     if (ethers.utils.isBytesLike(populatedTx.data)) {
