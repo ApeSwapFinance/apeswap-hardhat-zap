@@ -56,7 +56,7 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^1.0.1",
     "@nomiclabs/hardhat-ethers": "^2.0.0",
-    "@nomiclabs/hardhat-etherscan": "^2.1.6",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
     "@types/chai": "^4.2.0",
@@ -83,7 +83,7 @@
     "typescript": ">=4.5.0"
   },
   "dependencies": {
-    "@ape.swap/contracts": "^2.0.0-alpha.4",
+    "@ape.swap/contracts": "^2.0.1",
     "@ape.swap/hardhat-test-helpers": "0.6.6-alpha.0",
     "@openzeppelin/contracts": "^4.7.3",
     "@openzeppelin/contracts-upgradeable": "^4.7.3",

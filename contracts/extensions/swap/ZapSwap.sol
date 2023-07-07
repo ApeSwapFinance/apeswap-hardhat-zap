@@ -39,13 +39,11 @@ contract ZapSwap is TransferHelper, MulticallGuard {
     }
 
     struct SwapParams {
+        address router;
         IERC20 inputToken;
         uint256 inputAmount;
         SwapType2 swapType;
-        address caller;
         bytes[] swapData;
-        address to;
-        uint256 deadline;
     }
 
     event Swap(SwapParams params);
@@ -54,17 +52,18 @@ contract ZapSwap is TransferHelper, MulticallGuard {
     /// @dev This function cannot handle native swaps
     /// @param params all parameters for zap
     function swap(SwapParams memory params) external payable multicallGuard(true, msg.value == 0) {
-        require(params.to != address(0), "ZapSwap: Can't zap to null address");
-        require(params.caller != address(0), "ZapSwap: caller can't be null address");
+        require(params.router != address(0), "ZapSwap: Router can't be address(0)");
 
         params.inputAmount = _transferIn(params.inputToken, params.inputAmount);
-        params.inputToken.approve(params.caller, params.inputAmount);
+        params.inputToken.approve(params.router, params.inputAmount);
 
         if (params.swapType == SwapType2.MultiSwapRouter) {
-            IApeSwapMultiSwapRouter(params.caller).multicall(params.swapData);
+            IApeSwapMultiSwapRouter(params.router).multicall(params.swapData);
         } else {
             revert("ZapSwap: Swap type not supported");
         }
         emit Swap(params);
+
+        params.inputToken.approve(params.router, 0);
     }
 }

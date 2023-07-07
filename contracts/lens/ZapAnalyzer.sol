@@ -242,11 +242,11 @@ contract ZapAnalyzer is IZapAnalyzer {
                 uint256 fullTokenAmount = 10 ** TokenHelper.getTokenDecimals(path.path[0]);
 
                 // Determine the precision for the adjusted amount
-                // The goal is to reduce the impact of slippage, especially when dealing with tokens that 
-                // have high value or low liquidity. For example, swapping 1 full BTC could cause significant 
+                // The goal is to reduce the impact of slippage, especially when dealing with tokens that
+                // have high value or low liquidity. For example, swapping 1 full BTC could cause significant
                 // slippage in a pool with low liquidity, but swapping a smaller fraction of BTC would be less likely
                 // to cause high slippage.
-                // However, we also want to avoid increasing the precision too much, as this could lead to 
+                // However, we also want to avoid increasing the precision too much, as this could lead to
                 // rounding errors. For example, swapping 1000 USDC (6 decimals) could return 0 due to rounding errors.
                 uint256 precision = 1e6; // Use a precision of 1e6 for tokens with more than 12 decimals
                 if (fullTokenAmount <= 1e12) {
